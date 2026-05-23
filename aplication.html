@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Aplicacion | Brasaland</title>
+		<meta
+			name="description"
+			content="Formulario de aplicacion de Brasaland para postularse a nuestras vacantes en cualquiera de las 14 sedes."
+		/>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="min-h-screen bg-stone-100 text-zinc-900 antialiased">
+		<header class="border-b border-amber-200 bg-stone-50">
+			<div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+				<a href="index.html" class="flex items-center gap-3" aria-label="Volver al inicio">
+					<span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-red-700 to-amber-500 font-extrabold text-white">B</span>
+					<span class="text-xl font-black">Brasaland</span>
+				</a>
+				<a href="index.html" class="rounded-full border border-amber-300 bg-stone-50 px-4 py-2 text-sm font-bold hover:bg-amber-100">Volver al landing</a>
+			</div>
+		</header>
+
+		<main class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+			<section class="mb-8 max-w-3xl">
+				<h1 class="text-3xl font-black tracking-tight sm:text-4xl">Formulario de aplicacion y registro</h1>
+				<p class="mt-3 text-zinc-700">
+					Completa todos los campos obligatorios para aplicar a Brasaland. Validamos la informacion antes de enviar tu postulacion.
+				</p>
+			</section>
+
+			<section aria-label="Formulario de aplicacion">
+				<form id="applicationForm" novalidate class="space-y-8 rounded-3xl border border-amber-200 bg-stone-50 p-5 shadow-sm sm:p-8">
+					<fieldset class="space-y-4 rounded-2xl border border-amber-200 bg-white p-4 sm:p-6">
+						<legend class="px-1 text-lg font-bold">Datos personales</legend>
+						<div class="grid gap-4 md:grid-cols-2">
+							<div>
+								<label for="fullName" class="mb-1 block text-sm font-semibold">Nombre completo *</label>
+								<input
+									id="fullName"
+									name="fullName"
+									type="text"
+									required
+									minlength="3"
+									autocomplete="name"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="fullNameError"
+								/>
+								<p id="fullNameError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="idNumber" class="mb-1 block text-sm font-semibold">Documento de identidad *</label>
+								<input
+									id="idNumber"
+									name="idNumber"
+									type="text"
+									required
+									minlength="6"
+									maxlength="15"
+									autocomplete="off"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="idNumberError"
+								/>
+								<p id="idNumberError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="email" class="mb-1 block text-sm font-semibold">Correo electronico *</label>
+								<input
+									id="email"
+									name="email"
+									type="email"
+									required
+									autocomplete="email"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="emailError"
+								/>
+								<p id="emailError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="phone" class="mb-1 block text-sm font-semibold">Telefono *</label>
+								<input
+									id="phone"
+									name="phone"
+									type="tel"
+									required
+									autocomplete="tel"
+									placeholder="+57 300 123 4567"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="phoneError"
+								/>
+								<p id="phoneError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="birthDate" class="mb-1 block text-sm font-semibold">Fecha de nacimiento *</label>
+								<input
+									id="birthDate"
+									name="birthDate"
+									type="date"
+									required
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="birthDateError"
+								/>
+								<p id="birthDateError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="city" class="mb-1 block text-sm font-semibold">Ciudad de residencia *</label>
+								<input
+									id="city"
+									name="city"
+									type="text"
+									required
+									autocomplete="address-level2"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="cityError"
+								/>
+								<p id="cityError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+						</div>
+					</fieldset>
+
+					<fieldset class="space-y-4 rounded-2xl border border-amber-200 bg-white p-4 sm:p-6">
+						<legend class="px-1 text-lg font-bold">Informacion laboral</legend>
+						<div class="grid gap-4 md:grid-cols-2">
+							<div>
+								<label for="preferredBranch" class="mb-1 block text-sm font-semibold">Sede de interes *</label>
+								<select
+									id="preferredBranch"
+									name="preferredBranch"
+									required
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="preferredBranchError"
+								>
+									<option value="">Selecciona una sede</option>
+									<option value="Bogota Norte">Bogota Norte</option>
+									<option value="Bogota Centro">Bogota Centro</option>
+									<option value="Bogota Occidente">Bogota Occidente</option>
+									<option value="Medellin Poblado">Medellin Poblado</option>
+									<option value="Medellin Laureles">Medellin Laureles</option>
+									<option value="Cali Sur">Cali Sur</option>
+									<option value="Cali Norte">Cali Norte</option>
+									<option value="Barranquilla Alto Prado">Barranquilla Alto Prado</option>
+									<option value="Cartagena Bocagrande">Cartagena Bocagrande</option>
+									<option value="Bucaramanga Cabecera">Bucaramanga Cabecera</option>
+									<option value="Pereira Centro">Pereira Centro</option>
+									<option value="Miami Doral">Miami Doral</option>
+									<option value="Orlando Downtown">Orlando Downtown</option>
+									<option value="Tampa Westshore">Tampa Westshore</option>
+								</select>
+								<p id="preferredBranchError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="position" class="mb-1 block text-sm font-semibold">Cargo al que aplicas *</label>
+								<select
+									id="position"
+									name="position"
+									required
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="positionError"
+								>
+									<option value="">Selecciona un cargo</option>
+									<option value="Mesero">Mesero</option>
+									<option value="Cocinero">Cocinero</option>
+									<option value="Parrillero">Parrillero</option>
+									<option value="Cajero">Cajero</option>
+									<option value="Administrador de sede">Administrador de sede</option>
+									<option value="Auxiliar de cocina">Auxiliar de cocina</option>
+								</select>
+								<p id="positionError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="experienceYears" class="mb-1 block text-sm font-semibold">Anos de experiencia *</label>
+								<input
+									id="experienceYears"
+									name="experienceYears"
+									type="number"
+									required
+									min="0"
+									max="45"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="experienceYearsError"
+								/>
+								<p id="experienceYearsError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="salaryExpectation" class="mb-1 block text-sm font-semibold">Aspiracion salarial mensual (COP) *</label>
+								<input
+									id="salaryExpectation"
+									name="salaryExpectation"
+									type="number"
+									required
+									min="1"
+									step="10000"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="salaryExpectationError"
+								/>
+								<p id="salaryExpectationError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="startDate" class="mb-1 block text-sm font-semibold">Disponibilidad de inicio *</label>
+								<input
+									id="startDate"
+									name="startDate"
+									type="date"
+									required
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="startDateError"
+								/>
+								<p id="startDateError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+
+							<div>
+								<label for="foodCertificate" class="mb-1 block text-sm font-semibold">Certificado de manipulacion de alimentos</label>
+								<select
+									id="foodCertificate"
+									name="foodCertificate"
+									class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+									aria-describedby="foodCertificateError"
+								>
+									<option value="">Selecciona una opcion</option>
+									<option value="si">Si, vigente</option>
+									<option value="en-tramite">En tramite</option>
+									<option value="no">No</option>
+								</select>
+								<p id="foodCertificateError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+							</div>
+						</div>
+
+						<fieldset class="rounded-xl border border-amber-200 bg-stone-50 p-4">
+							<legend class="px-1 text-sm font-semibold">Disponibilidad de horario *</legend>
+							<div class="mt-2 grid gap-2 sm:grid-cols-3">
+								<label class="flex items-center gap-2 text-sm">
+									<input type="radio" name="workAvailability" value="diurno" class="h-4 w-4" />
+									Diurno
+								</label>
+								<label class="flex items-center gap-2 text-sm">
+									<input type="radio" name="workAvailability" value="nocturno" class="h-4 w-4" />
+									Nocturno
+								</label>
+								<label class="flex items-center gap-2 text-sm">
+									<input type="radio" name="workAvailability" value="rotativo" class="h-4 w-4" />
+									Rotativo
+								</label>
+							</div>
+							<p id="workAvailabilityError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+						</fieldset>
+
+						<div>
+							<label for="motivation" class="mb-1 block text-sm font-semibold">Cuentanos por que quieres trabajar en Brasaland *</label>
+							<textarea
+								id="motivation"
+								name="motivation"
+								required
+								minlength="30"
+								rows="5"
+								class="w-full rounded-xl border border-amber-300 bg-stone-50 px-4 py-2.5 outline-none ring-red-700 transition focus:border-red-700 focus:ring-2"
+								aria-describedby="motivationError"
+							></textarea>
+							<p id="motivationError" class="mt-1 text-sm text-red-700" aria-live="polite"></p>
+						</div>
+					</fieldset>
+
+					<fieldset class="space-y-4 rounded-2xl border border-amber-200 bg-white p-4 sm:p-6">
+						<legend class="px-1 text-lg font-bold">Consentimientos</legend>
+						<label class="flex items-start gap-2 text-sm">
+							<input id="terms" name="terms" type="checkbox" required class="mt-0.5 h-4 w-4" aria-describedby="termsError" />
+							<span>Acepto el tratamiento de mis datos personales para fines de seleccion y contacto laboral. *</span>
+						</label>
+						<p id="termsError" class="text-sm text-red-700" aria-live="polite"></p>
+					</fieldset>
+
+					<div class="flex flex-col gap-3 sm:flex-row">
+						<button
+							type="submit"
+							class="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-red-700 to-amber-600 px-6 py-3 text-sm font-extrabold text-white transition hover:from-red-800 hover:to-amber-700"
+						>
+							Enviar aplicacion
+						</button>
+						<button
+							type="reset"
+							id="resetButton"
+							class="inline-flex items-center justify-center rounded-full border border-amber-300 bg-stone-50 px-6 py-3 text-sm font-bold text-zinc-800 transition hover:bg-amber-100"
+						>
+							Limpiar formulario
+						</button>
+					</div>
+
+					<p class="text-xs text-zinc-500">Los campos marcados con * son obligatorios.</p>
+
+					<div
+						id="formSuccess"
+						role="status"
+						aria-live="polite"
+						class="hidden rounded-xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-semibold text-stone-900"
+					>
+						Aplicacion enviada correctamente. Nuestro equipo de talento te contactara pronto.
+					</div>
+				</form>
+			</section>
+		</main>
+
+		<script src="validation.js" defer></script>
+	</body>
+</html>

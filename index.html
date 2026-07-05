@@ -91,49 +91,75 @@
 		</details>
 
 		<main id="contenido">
-			<section id="inicio" class="relative overflow-hidden">
-				<div class="absolute inset-0 bg-gradient-to-br from-stone-950 via-red-950 to-amber-700"></div>
-				<div class="relative mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 md:py-20 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-8 lg:py-24">
+			<section id="inicio" class="relative isolate overflow-hidden bg-stone-950">
+				<div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.25),transparent_50%),radial-gradient(circle_at_20%_80%,_rgba(185,28,28,0.3),transparent_45%),linear-gradient(120deg,#0c0a09_0%,#1c1917_35%,#3f1f15_100%)]"></div>
+				<div class="absolute -left-12 top-16 h-44 w-44 rounded-full border border-amber-300/20 bg-amber-400/10 blur-2xl"></div>
+				<div class="absolute -right-16 bottom-10 h-52 w-52 rounded-full border border-red-300/20 bg-red-400/10 blur-2xl"></div>
+
+				<div class="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:py-20 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-8 lg:py-24">
 					<div>
-						<p class="inline-flex rounded-full border border-amber-300/40 bg-stone-950/40 px-4 py-1 text-xs font-bold uppercase tracking-wider text-amber-100">
-							Restaurante reconocido en 14 sedes
+						<p class="inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-stone-900/60 px-4 py-1.5 text-xs font-extrabold uppercase tracking-[0.14em] text-amber-100">
+							<span class="inline-block h-2 w-2 rounded-full bg-amber-300"></span>
+							Marca lider en parrilla premium
 						</p>
-						<h1 class="mt-5 text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
-							Brasaland: sabor autentico a la brasa, servicio rapido y experiencia memorable.
+						<h1 class="mt-6 max-w-2xl text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
+							Sabor a la brasa con
+							<span class="bg-gradient-to-r from-amber-200 to-orange-300 bg-clip-text text-transparent">operacion impecable</span>
+							en 14 sedes.
 						</h1>
-						<p class="mt-5 max-w-xl text-base leading-relaxed text-amber-100 sm:text-lg">
-							Combinamos calidad operativa, recetas consistentes y equipos apasionados para ofrecer una experiencia
-							premium en cada sede. Si buscas una marca fuerte y en crecimiento, este es tu lugar.
+						<p class="mt-6 max-w-xl text-base leading-relaxed text-stone-200 sm:text-lg">
+							En Brasaland ejecutamos cocina de alto volumen sin perder calidad: recetas estandar, equipos entrenados
+							y experiencia consistente para cada cliente en Colombia y Florida.
 						</p>
+
 						<div class="mt-8 flex flex-wrap gap-3">
 							<a
 								href="aplication.html"
-								class="rounded-full bg-gradient-to-r from-red-700 to-amber-600 px-6 py-3 text-sm font-bold text-white transition hover:from-red-800 hover:to-amber-700"
+								class="inline-flex items-center rounded-full bg-gradient-to-r from-red-700 to-amber-600 px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-red-900/40 transition hover:from-red-800 hover:to-amber-700"
 							>
-								Ir al formulario
+								Postularme ahora
 							</a>
 							<a
-								href="#beneficios"
-								class="rounded-full border border-amber-300/50 bg-stone-900/40 px-6 py-3 text-sm font-bold text-amber-100 transition hover:border-amber-200"
+								href="#reservas"
+								class="inline-flex items-center rounded-full border border-amber-200/40 bg-stone-900/50 px-6 py-3 text-sm font-bold text-amber-100 transition hover:border-amber-100"
 							>
-								Ver beneficios
+								Reservar mesa
 							</a>
+						</div>
+
+						<div class="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
+							<article class="rounded-2xl border border-amber-200/20 bg-stone-900/60 px-4 py-3">
+								<p class="text-xs font-semibold uppercase tracking-wide text-stone-300">Clientes/mes</p>
+								<p class="mt-1 text-2xl font-black text-amber-200">+120K</p>
+							</article>
+							<article class="rounded-2xl border border-amber-200/20 bg-stone-900/60 px-4 py-3">
+								<p class="text-xs font-semibold uppercase tracking-wide text-stone-300">Satisfaccion</p>
+								<p class="mt-1 text-2xl font-black text-amber-200">96%</p>
+							</article>
+							<article class="rounded-2xl border border-amber-200/20 bg-stone-900/60 px-4 py-3">
+								<p class="text-xs font-semibold uppercase tracking-wide text-stone-300">Sedes activas</p>
+								<p class="mt-1 text-2xl font-black text-amber-200">14</p>
+							</article>
 						</div>
 					</div>
 
-					<figure class="overflow-hidden rounded-3xl border border-amber-300/50 bg-stone-900 shadow-xl">
+					<figure class="overflow-hidden rounded-3xl border border-amber-200/30 bg-stone-900/80 shadow-[0_22px_70px_-28px_rgba(0,0,0,0.75)]">
 						<div class="relative">
 							<img
 								id="heroGalleryImage"
 								src="https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=1400&q=80"
 								alt="Corte de carne cocinandose a la brasa con llamas intensas"
-								class="h-72 w-full cursor-pointer object-cover sm:h-96"
+								class="h-72 w-full cursor-pointer object-cover sm:h-[430px]"
 								loading="lazy"
 							/>
+							<div class="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-900/20 to-transparent"></div>
+							<p class="absolute left-4 top-4 rounded-full border border-amber-200/40 bg-stone-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-100">
+								Galeria Brasaland
+							</p>
 							<button
 								type="button"
 								id="galleryPrev"
-								class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-stone-900/75 px-3 py-2 text-xs font-bold text-amber-100 transition hover:bg-stone-800"
+								class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-amber-100/40 bg-stone-900/70 px-4 py-2 text-xs font-extrabold text-amber-100 transition hover:bg-stone-800"
 								aria-label="Foto anterior"
 							>
 								Anterior
@@ -141,14 +167,28 @@
 							<button
 								type="button"
 								id="galleryNext"
-								class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-stone-900/75 px-3 py-2 text-xs font-bold text-amber-100 transition hover:bg-stone-800"
+								class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-amber-100/40 bg-stone-900/70 px-4 py-2 text-xs font-extrabold text-amber-100 transition hover:bg-stone-800"
 								aria-label="Foto siguiente"
 							>
 								Siguiente
 							</button>
+							<div class="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">
+								<div>
+									<p id="heroGalleryCaption" class="text-sm font-semibold text-amber-100">Las mejores carnes al carbon</p>
+									<p class="mt-1 text-xs text-stone-300">Haz click en la imagen para cambiar de foto.</p>
+								</div>
+								<p id="heroGalleryIndex" class="rounded-full border border-amber-200/40 bg-stone-900/70 px-3 py-1 text-xs font-bold text-amber-100">01 / 08</p>
+							</div>
 						</div>
-						<figcaption class="space-y-2 px-5 py-4 text-center text-sm font-semibold tracking-wide text-amber-100">
-							<p>Las mejores carnes al carbon</p>
+						<figcaption class="flex items-center justify-center gap-2 px-5 py-4" aria-label="Indicadores de galeria">
+							<button type="button" data-gallery-dot="0" class="h-2.5 w-2.5 rounded-full bg-amber-100" aria-label="Ir a foto 1"></button>
+							<button type="button" data-gallery-dot="1" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 2"></button>
+							<button type="button" data-gallery-dot="2" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 3"></button>
+							<button type="button" data-gallery-dot="3" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 4"></button>
+							<button type="button" data-gallery-dot="4" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 5"></button>
+							<button type="button" data-gallery-dot="5" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 6"></button>
+							<button type="button" data-gallery-dot="6" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 7"></button>
+							<button type="button" data-gallery-dot="7" class="h-2.5 w-2.5 rounded-full bg-stone-600" aria-label="Ir a foto 8"></button>
 						</figcaption>
 					</figure>
 				</div>
@@ -432,6 +472,9 @@
 			const heroGalleryImage = document.getElementById("heroGalleryImage");
 			const galleryPrev = document.getElementById("galleryPrev");
 			const galleryNext = document.getElementById("galleryNext");
+			const heroGalleryCaption = document.getElementById("heroGalleryCaption");
+			const heroGalleryIndex = document.getElementById("heroGalleryIndex");
+			const heroGalleryDots = document.querySelectorAll("[data-gallery-dot]");
 
 			if (heroGalleryImage && galleryPrev && galleryNext) {
 				const galleryItems = [
@@ -477,6 +520,27 @@
 					imageRetryCount = 0;
 					heroGalleryImage.src = currentItem.src;
 					heroGalleryImage.alt = currentItem.alt;
+
+					if (heroGalleryCaption) {
+						heroGalleryCaption.textContent = currentItem.alt;
+					}
+
+					if (heroGalleryIndex) {
+						const visibleIndex = String(currentGalleryIndex + 1).padStart(2, "0");
+						const totalImages = String(galleryItems.length).padStart(2, "0");
+						heroGalleryIndex.textContent = `${visibleIndex} / ${totalImages}`;
+					}
+
+					heroGalleryDots.forEach((dot, index) => {
+						if (index === currentGalleryIndex) {
+							dot.classList.remove("bg-stone-600");
+							dot.classList.add("bg-amber-100");
+							return;
+						}
+
+						dot.classList.remove("bg-amber-100");
+						dot.classList.add("bg-stone-600");
+					});
 				};
 
 				const showPreviousImage = () => {
@@ -491,6 +555,15 @@
 
 				galleryPrev.addEventListener("click", showPreviousImage);
 				galleryNext.addEventListener("click", showNextImage);
+				heroGalleryDots.forEach((dot) => {
+					dot.addEventListener("click", () => {
+						const selectedIndex = Number(dot.getAttribute("data-gallery-dot"));
+						if (!Number.isFinite(selectedIndex)) return;
+
+						currentGalleryIndex = selectedIndex;
+						renderGalleryImage();
+					});
+				});
 				heroGalleryImage.addEventListener("click", showNextImage);
 				heroGalleryImage.addEventListener("error", () => {
 					if (imageRetryCount >= galleryItems.length) {

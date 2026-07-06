@@ -1,0 +1,16 @@
+{
+  "name": "nicocc21-seleccion-de-empresa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hito 2 - Fundamentos de programacion en TypeScript para Brasaland",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "demo": "tsx src/demo.ts",
+    "build:web": "esbuild src/hito2/web.ts --bundle --platform=browser --format=iife --outfile=dist/hito2-web.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.9",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  }
+}

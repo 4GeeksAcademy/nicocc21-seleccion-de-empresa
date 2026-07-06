@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brasaland OPS Console | Interno</title>
+    <meta
+      name="description"
+      content="Consola operativa interna para CEO y Jefatura de Inventarios de Brasaland."
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-stone-950 text-stone-100">
+    <main class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+      <header class="rounded-3xl border border-amber-300/30 bg-gradient-to-br from-stone-900 to-red-950 p-8 shadow-2xl shadow-black/40">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Brasaland OPS Console</p>
+        <h1 class="mt-4 text-3xl font-black leading-tight sm:text-4xl">Panel interno de control financiero e inventarios</h1>
+        <p class="mt-4 max-w-3xl text-sm text-stone-300 sm:text-base">
+          Plataforma interna separada del sitio comercial. Acceso orientado exclusivamente a Direccion Ejecutiva
+          (CEO) y Jefatura de Inventarios. No es una pagina para clientes.
+        </p>
+      </header>
+
+      <section class="mt-8 grid gap-6 md:grid-cols-2">
+        <article class="rounded-2xl border border-stone-700 bg-stone-900 p-6">
+          <h2 class="text-xl font-extrabold text-amber-200">Acceso interno</h2>
+          <div class="mt-4 space-y-3 text-sm">
+            <p><span class="font-bold text-stone-200">Rol:</span> CEO / Jefe de Inventarios</p>
+            <p><span class="font-bold text-stone-200">Ambito:</span> Operacion interna (14 sedes)</p>
+            <p><span class="font-bold text-stone-200">Visibilidad:</span> No publica</p>
+            <p><span class="font-bold text-stone-200">Fuente:</span> Logica TypeScript del Hito 2</p>
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-stone-700 bg-stone-900 p-6">
+          <h2 class="text-xl font-extrabold text-amber-200">Fuente de calculo</h2>
+          <ul class="mt-4 space-y-2 text-sm text-stone-300">
+            <li>src/hito2/types.ts</li>
+            <li>src/hito2/collections.ts</li>
+            <li>src/hito2/aggregations.ts</li>
+            <li>src/hito2/inventory-alerts.ts</li>
+            <li>src/hito2/sample-data.ts</li>
+            <li>src/demo.ts</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="mt-8 rounded-2xl border border-amber-500/40 bg-amber-100/10 p-6">
+        <h2 class="text-xl font-extrabold text-amber-200">Objetivo operativo</h2>
+        <p class="mt-3 text-sm text-stone-200">
+          Proveer visibilidad ejecutiva por local y alertas de inventario priorizadas para toma de decisiones semanal
+          en una plataforma independiente del sitio comercial.
+        </p>
+      </section>
+
+      <section class="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
+        <h2 class="text-xl font-extrabold text-amber-200">Filtros en tiempo real</h2>
+        <p class="mt-2 text-sm text-stone-300">Cambia fechas y la pagina recalcula reportes/alertas sin recompilar.</p>
+        <div class="mt-4 grid gap-4 md:grid-cols-3">
+          <label class="text-sm">
+            <span class="mb-1 block font-semibold text-stone-200">Rango desde</span>
+            <input id="filtroDesde" type="date" class="w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-stone-100 outline-none ring-amber-500 focus:ring-2" />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block font-semibold text-stone-200">Rango hasta</span>
+            <input id="filtroHasta" type="date" class="w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-stone-100 outline-none ring-amber-500 focus:ring-2" />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block font-semibold text-stone-200">Fecha de analisis</span>
+            <input id="filtroAnalisis" type="date" class="w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-stone-100 outline-none ring-amber-500 focus:ring-2" />
+          </label>
+        </div>
+        <div class="mt-4 flex items-center gap-3">
+          <button id="resetFiltros" type="button" class="rounded-full border border-amber-400/50 bg-amber-500/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-amber-200 hover:bg-amber-500/20">Restablecer filtros</button>
+          <p id="filtrosError" class="text-sm font-semibold text-red-300"></p>
+        </div>
+      </section>
+
+      <section class="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-xl font-extrabold text-amber-200">Reporte financiero por local</h2>
+          <p id="rangoReporte" class="text-xs font-semibold uppercase tracking-wide text-stone-400"></p>
+        </div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-stone-700 text-stone-300">
+                <th class="px-3 py-2">Local</th>
+                <th class="px-3 py-2">Entradas</th>
+                <th class="px-3 py-2">Salidas</th>
+                <th class="px-3 py-2">Balance</th>
+              </tr>
+            </thead>
+            <tbody id="tablaReportesBody" class="text-stone-100"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
+        <h2 class="text-xl font-extrabold text-amber-200">Alertas de inventario</h2>
+        <p id="contextoAlertas" class="mt-2 text-xs uppercase tracking-wide text-stone-400"></p>
+        <ul id="listaAlertas" class="mt-4 space-y-3"></ul>
+      </section>
+    </main>
+    <script src="dist/hito2-web.js"></script>
+  </body>
+</html>

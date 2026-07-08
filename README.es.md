@@ -17,6 +17,15 @@ Este repositorio es la **plantilla de inicio** para los proyectos transversales.
 - Reemplaza el `CONTEXT.md` placeholder por el contexto de tu empresa asignada.
 - Usa `skills/` y los `README.md` por carpeta como guía de trabajo.
 
+### Estructura activa de este repositorio
+
+Para mantener el proyecto más limpio en el explorador:
+
+- La UI del hito y assets web quedaron en `web/`.
+- El código TypeScript del hito quedó en `src/`.
+- La documentación general quedó en raíz (`README`, `CONTEXT`) y `docs/`.
+- Las carpetas de plantilla base se agruparon en `template/`.
+
 ---
 
 ## Estado actual de la plantilla

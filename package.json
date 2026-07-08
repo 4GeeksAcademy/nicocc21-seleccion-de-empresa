@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "demo": "tsx src/demo.ts",
-    "build:web": "esbuild src/hito2/web.ts --bundle --platform=browser --format=iife --outfile=dist/hito2-web.js"
+    "build:web": "esbuild src/hito2/web.ts --bundle --platform=browser --format=iife --outfile=web/dist/hito2-web.js"
   },
   "devDependencies": {
     "esbuild": "^0.25.9",

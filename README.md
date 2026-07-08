@@ -17,6 +17,15 @@ This repository is the **starter template** for transversal projects. You will w
 - Replace the placeholder `CONTEXT.md` with your assigned company context.
 - Use `skills/` and the directory-level `README.md` files as working guidance.
 
+### Active structure in this repository
+
+To keep the explorer clean and easier to read:
+
+- Hito UI pages and web assets now live in `web/`.
+- TypeScript Hito business logic remains in `src/`.
+- General documentation stays at root (`README`, `CONTEXT`) and `docs/`.
+- Base template folders were grouped under `template/`.
+
 ---
 
 ## Current status of the template

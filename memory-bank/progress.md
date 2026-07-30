@@ -1,5 +1,7 @@
 # Estado Actual del Proyecto
 
+> Última actualización: 30 de julio de 2026
+
 ## Hito 1 — Web pública
 
 | Archivo | Estado | Descripción |

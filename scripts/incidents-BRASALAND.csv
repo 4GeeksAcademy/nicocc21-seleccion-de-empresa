@@ -1,0 +1,101 @@
+incident_id,fecha_reporte,local_id,cliente_id,cliente_email,cliente_telefono,categoria,estado,prioridad,satisfaccion,descripcion
+INC0001,2026-01-01,L01,C00001,cliente001@brasaland.test,+57-300-1000000,queja,abierto,baja,,Incidencia de queja en local L01
+INC0002,2026-01-01,L02,C00002,cliente002@brasaland.test,+57-300-1000001,queja,abierto,media,,Incidencia de queja en local L02
+INC0003,2026-01-01,L03,C00003,cliente003@brasaland.test,+57-300-1000002,queja,abierto,alta,,Incidencia de queja en local L03
+INC0004,2026-01-02,L04,C00004,cliente004@brasaland.test,+57-300-1000003,queja,abierto,critica,,Incidencia de queja en local L04
+INC0005,2026-01-02,L05,C00005,cliente005@brasaland.test,+57-300-1000004,queja,abierto,baja,,Incidencia de queja en local L05
+INC0006,2026-01-02,L06,C00006,cliente006@brasaland.test,+57-300-1000005,queja,abierto,media,,Incidencia de queja en local L06
+INC0007,2026-01-02,L07,C00007,cliente007@brasaland.test,+57-300-1000006,queja,abierto,alta,,Incidencia de queja en local L07
+INC0008,2026-01-03,L08,C00008,cliente008@brasaland.test,+57-300-1000007,queja,abierto,critica,,Incidencia de queja en local L08
+INC0009,2026-01-03,L09,C00009,cliente009@brasaland.test,+57-300-1000008,queja,abierto,baja,,Incidencia de queja en local L09
+INC0010,2026-01-03,L10,C00010,cliente010@brasaland.test,+57-300-1000009,queja,abierto,media,,Incidencia de queja en local L10
+INC0011,2026-01-03,L11,C00011,cliente011@brasaland.test,+57-300-1000010,queja,abierto,alta,,Incidencia de queja en local L11
+INC0012,2026-01-04,L12,C00012,cliente012@brasaland.test,+57-300-1000011,queja,abierto,critica,,Incidencia de queja en local L12
+INC0013,2026-01-04,L13,C00013,cliente013@brasaland.test,+57-300-1000012,queja,abierto,baja,,Incidencia de queja en local L13
+INC0014,2026-01-04,L14,C00014,cliente014@brasaland.test,+57-300-1000013,queja,abierto,media,,Incidencia de queja en local L14
+INC0015,2026-01-04,L01,C00015,cliente015@brasaland.test,+57-300-1000014,queja,abierto,alta,,Incidencia de queja en local L01
+INC0016,2026-01-05,L02,C00016,cliente016@brasaland.test,+57-300-1000015,queja,abierto,critica,,Incidencia de queja en local L02
+INC0017,2026-01-05,L03,C00017,cliente017@brasaland.test,+57-300-1000016,queja,abierto,baja,,Incidencia de queja en local L03
+INC0018,2026-01-05,L04,C00018,cliente018@brasaland.test,+57-300-1000017,queja,abierto,media,,Incidencia de queja en local L04
+INC0019,2026-01-05,L05,C00019,cliente019@brasaland.test,+57-300-1000018,queja,abierto,alta,,Incidencia de queja en local L05
+INC0020,2026-01-06,L06,C00020,cliente020@brasaland.test,+57-300-1000019,queja,abierto,critica,,Incidencia de queja en local L06
+INC0021,2026-01-06,L07,C00021,cliente021@brasaland.test,+57-300-1000020,queja,abierto,baja,,Incidencia de queja en local L07
+INC0022,2026-01-06,L08,C00022,cliente022@brasaland.test,+57-300-1000021,queja,abierto,media,,Incidencia de queja en local L08
+INC0023,2026-01-06,L09,C00023,cliente023@brasaland.test,+57-300-1000022,queja,abierto,alta,,Incidencia de queja en local L09
+INC0024,2026-01-07,L10,C00024,cliente024@brasaland.test,+57-300-1000023,queja,abierto,critica,,Incidencia de queja en local L10
+INC0025,2026-01-07,L11,C00025,cliente025@brasaland.test,+57-300-1000024,queja,abierto,baja,,Incidencia de queja en local L11
+INC0026,2026-01-07,L12,C00026,cliente026@brasaland.test,+57-300-1000025,queja,abierto,media,,Incidencia de queja en local L12
+INC0027,2026-01-07,L13,C00027,cliente027@brasaland.test,+57-300-1000026,queja,abierto,alta,,Incidencia de queja en local L13
+INC0028,2026-01-08,L14,C00028,cliente028@brasaland.test,+57-300-1000027,queja,abierto,critica,,Incidencia de queja en local L14
+INC0029,2026-01-08,L01,C00029,cliente029@brasaland.test,+57-300-1000028,queja,abierto,baja,,Incidencia de queja en local L01
+INC0030,2026-01-08,L02,C00030,cliente030@brasaland.test,+57-300-1000029,queja,abierto,media,,Incidencia de queja en local L02
+INC0031,2026-01-08,L03,C00031,cliente031@brasaland.test,+57-300-1000030,queja,abierto,alta,,Incidencia de queja en local L03
+INC0032,2026-01-09,L04,C00032,cliente032@brasaland.test,+57-300-1000031,queja,abierto,critica,,Incidencia de queja en local L04
+INC0033,2026-01-09,L05,C00033,cliente033@brasaland.test,+57-300-1000032,queja,abierto,baja,,Incidencia de queja en local L05
+INC0034,2026-01-09,L06,C00034,cliente034@brasaland.test,+57-300-1000033,queja,cerrado,media,5,Incidencia de queja en local L06
+INC0035,2026-01-09,L07,C00035,cliente035@brasaland.test,+57-300-1000034,solicitud,cerrado,alta,4,Incidencia de solicitud en local L07
+INC0036,2026-01-10,L08,C00036,cliente036@brasaland.test,+57-300-1000035,solicitud,cerrado,critica,4,Incidencia de solicitud en local L08
+INC0037,2026-01-10,L09,C00037,cliente037@brasaland.test,+57-300-1000036,solicitud,cerrado,baja,4,Incidencia de solicitud en local L09
+INC0038,2026-01-10,L10,C00038,cliente038@brasaland.test,+57-300-1000037,solicitud,cerrado,media,5,Incidencia de solicitud en local L10
+INC0039,2026-01-10,L11,C00039,cliente039@brasaland.test,+57-300-1000038,solicitud,cerrado,alta,4,Incidencia de solicitud en local L11
+INC0040,2026-01-11,L12,C00040,cliente040@brasaland.test,+57-300-1000039,solicitud,cerrado,critica,4,Incidencia de solicitud en local L12
+INC0041,2026-01-11,L13,C00041,cliente041@brasaland.test,+57-300-1000040,solicitud,cerrado,baja,4,Incidencia de solicitud en local L13
+INC0042,2026-01-11,L14,C00042,cliente042@brasaland.test,+57-300-1000041,solicitud,cerrado,media,5,Incidencia de solicitud en local L14
+INC0043,2026-01-11,L01,C00043,cliente043@brasaland.test,+57-300-1000042,solicitud,cerrado,alta,4,Incidencia de solicitud en local L01
+INC0044,2026-01-12,L02,C00044,cliente044@brasaland.test,+57-300-1000043,solicitud,cerrado,critica,4,Incidencia de solicitud en local L02
+INC0045,2026-01-12,L03,C00045,cliente045@brasaland.test,+57-300-1000044,solicitud,cerrado,baja,4,Incidencia de solicitud en local L03
+INC0046,2026-01-12,L04,C00046,cliente046@brasaland.test,+57-300-1000045,solicitud,cerrado,media,5,Incidencia de solicitud en local L04
+INC0047,2026-01-12,L05,C00047,cliente047@brasaland.test,+57-300-1000046,solicitud,cerrado,alta,4,Incidencia de solicitud en local L05
+INC0048,2026-01-13,L06,C00048,cliente048@brasaland.test,+57-300-1000047,solicitud,cerrado,critica,4,Incidencia de solicitud en local L06
+INC0049,2026-01-13,L07,C00049,cliente049@brasaland.test,+57-300-1000048,solicitud,cerrado,baja,4,Incidencia de solicitud en local L07
+INC0050,2026-01-13,L08,C00050,cliente050@brasaland.test,+57-300-1000049,solicitud,cerrado,media,5,Incidencia de solicitud en local L08
+INC0051,2026-01-13,L09,C00051,cliente051@brasaland.test,+57-300-1000050,solicitud,cerrado,alta,4,Incidencia de solicitud en local L09
+INC0052,2026-01-14,L10,C00052,cliente052@brasaland.test,+57-300-1000051,solicitud,cerrado,critica,4,Incidencia de solicitud en local L10
+INC0053,2026-01-14,L11,C00053,cliente053@brasaland.test,+57-300-1000052,solicitud,cerrado,baja,3,Incidencia de solicitud en local L11
+INC0054,2026-01-14,L12,C00054,cliente054@brasaland.test,+57-300-1000053,solicitud,cerrado,media,5,Incidencia de solicitud en local L12
+INC0055,2026-01-14,L13,C00055,cliente055@brasaland.test,+57-300-1000054,solicitud,cerrado,alta,4,Incidencia de solicitud en local L13
+INC0056,2026-01-15,L14,C00056,cliente056@brasaland.test,+57-300-1000055,solicitud,cerrado,critica,4,Incidencia de solicitud en local L14
+INC0057,2026-01-15,L01,C00057,cliente057@brasaland.test,+57-300-1000056,solicitud,cerrado,baja,3,Incidencia de solicitud en local L01
+INC0058,2026-01-15,L02,C00058,cliente058@brasaland.test,+57-300-1000057,solicitud,cerrado,media,5,Incidencia de solicitud en local L02
+INC0059,2026-01-15,L03,C00059,cliente059@brasaland.test,+57-300-1000058,solicitud,cerrado,alta,4,Incidencia de solicitud en local L03
+INC0060,2026-01-16,L04,C00060,cliente060@brasaland.test,+57-300-1000059,solicitud,cerrado,critica,4,Incidencia de solicitud en local L04
+INC0061,2026-01-16,L05,C00061,cliente061@brasaland.test,+57-300-1000060,solicitud,cerrado,baja,3,Incidencia de solicitud en local L05
+INC0062,2026-01-16,L06,C00062,cliente062@brasaland.test,+57-300-1000061,solicitud,cerrado,media,5,Incidencia de solicitud en local L06
+INC0063,2026-01-16,L07,C00063,cliente063@brasaland.test,+57-300-1000062,solicitud,cerrado,alta,4,Incidencia de solicitud en local L07
+INC0064,2026-01-17,L08,C00064,cliente064@brasaland.test,+57-300-1000063,solicitud,cerrado,critica,4,Incidencia de solicitud en local L08
+INC0065,2026-01-17,L09,C00065,cliente065@brasaland.test,+57-300-1000064,fallo_operativo,cerrado,baja,3,Incidencia de fallo_operativo en local L09
+INC0066,2026-01-17,L10,C00066,cliente066@brasaland.test,+57-300-1000065,fallo_operativo,cerrado,media,5,Incidencia de fallo_operativo en local L10
+INC0067,2026-01-17,L11,C00067,cliente067@brasaland.test,+57-300-1000066,fallo_operativo,cerrado,alta,4,Incidencia de fallo_operativo en local L11
+INC0068,2026-01-18,L12,C00068,cliente068@brasaland.test,+57-300-1000067,fallo_operativo,cerrado,critica,4,Incidencia de fallo_operativo en local L12
+INC0069,2026-01-18,L13,C00069,cliente069@brasaland.test,+57-300-1000068,fallo_operativo,cerrado,baja,3,Incidencia de fallo_operativo en local L13
+INC0070,2026-01-18,L14,C00070,cliente070@brasaland.test,+57-300-1000069,fallo_operativo,cerrado,media,5,Incidencia de fallo_operativo en local L14
+INC0071,2026-01-18,L01,C00071,cliente071@brasaland.test,+57-300-1000070,fallo_operativo,cerrado,alta,4,Incidencia de fallo_operativo en local L01
+INC0072,2026-01-19,L02,C00072,cliente072@brasaland.test,+57-300-1000071,fallo_operativo,cerrado,critica,4,Incidencia de fallo_operativo en local L02
+INC0073,2026-01-19,L03,C00073,cliente073@brasaland.test,+57-300-1000072,fallo_operativo,cerrado,baja,3,Incidencia de fallo_operativo en local L03
+INC0074,2026-01-19,L04,C00074,cliente074@brasaland.test,+57-300-1000073,fallo_operativo,cerrado,media,,Incidencia de fallo_operativo en local L04
+INC0075,2026-01-19,L05,C00075,cliente075@brasaland.test,+57-300-1000074,fallo_operativo,cerrado,alta,,Incidencia de fallo_operativo en local L05
+INC0076,2026-01-20,L06,C00076,cliente076@brasaland.test,+57-300-1000075,fallo_operativo,cerrado,critica,,Incidencia de fallo_operativo en local L06
+INC0077,2026-01-20,L07,C00077,cliente077@brasaland.test,+57-300-1000076,fallo_operativo,cerrado,baja,,Incidencia de fallo_operativo en local L07
+INC0078,2026-01-20,L08,C00078,cliente078@brasaland.test,+57-300-1000077,fallo_operativo,cerrado,media,,Incidencia de fallo_operativo en local L08
+INC0079,2026-01-20,L09,C00079,cliente079@brasaland.test,+57-300-1000078,fallo_operativo,descartado,alta,,Incidencia de fallo_operativo en local L09
+INC0080,2026-01-21,L10,C00080,cliente080@brasaland.test,+57-300-1000079,fallo_operativo,descartado,critica,,Incidencia de fallo_operativo en local L10
+INC0081,2026-01-21,L11,C00081,cliente081@brasaland.test,+57-300-1000080,fallo_operativo,descartado,baja,,Incidencia de fallo_operativo en local L11
+INC0082,2026-01-21,L12,C00082,cliente082@brasaland.test,+57-300-1000081,fallo_operativo,descartado,media,,Incidencia de fallo_operativo en local L12
+INC0083,2026-01-21,L13,C00083,cliente083@brasaland.test,+57-300-1000082,fallo_operativo,descartado,alta,,Incidencia de fallo_operativo en local L13
+INC0084,2026-01-22,L14,C00084,cliente084@brasaland.test,+57-300-1000083,fallo_operativo,descartado,critica,,Incidencia de fallo_operativo en local L14
+INC0085,2026-01-22,L01,C00085,cliente085@brasaland.test,+57-300-1000084,fallo_operativo,descartado,baja,,Incidencia de fallo_operativo en local L01
+INC0086,2026-01-22,L02,C00086,cliente086@brasaland.test,+57-300-1000085,fallo_operativo,descartado,media,,Incidencia de fallo_operativo en local L02
+INC0087,2026-01-22,L03,C00087,cliente087@brasaland.test,+57-300-1000086,fallo_operativo,descartado,alta,,Incidencia de fallo_operativo en local L03
+INC0088,2026-01-23,L04,C00088,cliente088@brasaland.test,+57-300-1000087,fallo_operativo,descartado,critica,,Incidencia de fallo_operativo en local L04
+INC0089,2026-01-23,L05,C00089,cliente089@brasaland.test,+57-300-1000088,fallo_operativo,descartado,baja,,Incidencia de fallo_operativo en local L05
+INC0090,2026-01-23,L06,C00090,cliente090@brasaland.test,+57-300-1000089,fallo_operativo,descartado,media,,Incidencia de fallo_operativo en local L06
+INC0091,2026-01-23,L07,C00091,cliente091@brasaland.test,+57-300-1000090,fallo_operativo,descartado,alta,,Incidencia de fallo_operativo en local L07
+INC0092,2026-01-24,L08,C00092,cliente092@brasaland.test,+57-300-1000091,fallo_operativo,descartado,critica,,Incidencia de fallo_operativo en local L08
+INC0093,2026-03-15,L03,C00993,,+57-300-2000093,queja,abierto,media,,Falta email
+INC0094,2026-03-16,L04,C00994,,+57-300-2000094,solicitud,cerrado,baja,4,Falta email
+INC0095,2026-03-17,L05,C00995,cliente995@brasaland.test,+57-300-2000095,devolucion,abierto,alta,,Categoria invalida
+INC0096,2026-03-18,L06,C00996,cliente996@brasaland.test,+57-300-2000096,soporte,cerrado,media,5,Categoria invalida
+INC0097,2026-03-19,L07,C00997,cliente997@brasaland.test,+57-300-2000097,queja,en_proceso,alta,,Estado invalido
+INC0098,2026-03-20,L08,C00998,cliente998@brasaland.test,+57-300-2000098,solicitud,pendiente,baja,,Estado invalido
+INC0099,2026-03-21,L09,C00999,cliente999@brasaland.test,+57-300-2000099,fallo_operativo,cerrado,critica,6,Satisfaccion fuera de rango
+INC0100,2026-03-22,L15,C01000,cliente1000@brasaland.test,+57-300-2000100,queja,abierto,media,,Local invalido

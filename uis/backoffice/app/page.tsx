@@ -53,6 +53,14 @@ export default function BackofficePage() {
             Plataforma interna para Dirección Ejecutiva y Jefatura de
             Inventarios. Datos generados desde la lógica de negocio del Hito 2.
           </p>
+          <nav className="mt-6 flex flex-wrap gap-3 text-sm">
+            <a
+              href="/incidencias"
+              className="rounded-full border border-amber-300/60 bg-amber-300/10 px-4 py-2 font-bold text-amber-200 transition hover:bg-amber-300/20"
+            >
+              Ir al analizador de incidencias
+            </a>
+          </nav>
         </header>
 
         {/* Reporte financiero */}

@@ -99,3 +99,98 @@ Esto no se construye en esta fase, pero el modelo de datos ya esta orientado par
 - Vista de Operaciones (frontend) con estado de stock y alertas.
 - Job de informe semanal automatico.
 - Mecanismo de entrega de alertas e informes (en esta fase, dentro del portal).
+
+## 6. Modulo de incidencias postventa (simulacion interna)
+
+El departamento de atencion postventa de Brasaland gestiona incidencias de clientes (quejas, solicitudes y fallos operativos). Para validar el proceso de analisis sin exponer datos sensibles, se definio un dataset simulado interno de 100 registros en CSV.
+
+El objetivo es validar la logica ahora con datos ficticios y, en una fase posterior, sustituir el origen por datos reales sin cambiar la arquitectura.
+
+### Archivo de prueba
+
+- Ruta del archivo: scripts/incidents-BRASALAND.csv
+- Total de filas de datos: 100 (mas cabecera)
+- Registros validos esperados: 92
+- Registros invalidos esperados: 8
+
+### Esquema CSV (nombres exactos de columnas)
+
+1. incident_id
+2. fecha_reporte
+3. local_id
+4. cliente_id
+5. cliente_email
+6. cliente_telefono
+7. categoria
+8. estado
+9. prioridad
+10. satisfaccion
+11. descripcion
+
+### Campos obligatorios
+
+Los siguientes campos se consideran obligatorios para que una fila sea valida:
+
+- incident_id
+- fecha_reporte
+- local_id
+- cliente_id
+- cliente_email
+- cliente_telefono
+- categoria
+- estado
+- prioridad
+- descripcion
+
+Nota: satisfaccion es opcional salvo cuando aplique logica de validacion de rango si viene informada.
+
+### Valores validos
+
+- local_id: L01 a L14
+- categoria: queja, solicitud, fallo_operativo
+- estado: abierto, cerrado, descartado
+- prioridad: baja, media, alta, critica
+- satisfaccion: entero entre 1 y 5 cuando exista valor
+
+### Reglas de invalidez
+
+Una fila es invalida si cumple al menos una de estas condiciones:
+
+1. Le falta un campo obligatorio.
+2. categoria fuera de rango.
+3. estado fuera de rango.
+4. local_id fuera de rango.
+5. prioridad fuera de rango.
+6. satisfaccion fuera de rango (menor a 1 o mayor a 5) o no numerica.
+
+### Resultados esperados para el dataset simulado (base de verificacion)
+
+1. Totales generales
+- procesados: 100
+- validos: 92
+- invalidos: 8
+
+2. Invalidos por tipo
+- campo_faltante: 2
+- categoria_fuera_de_rango: 2
+- estado_fuera_de_rango: 2
+- satisfaccion_fuera_de_rango: 1
+- local_id_fuera_de_rango: 1
+
+3. Totalizacion por categoria (solo validos)
+- queja: 34
+- solicitud: 30
+- fallo_operativo: 28
+
+4. Totalizacion por estado (solo validos)
+- abierto: 33
+- cerrado: 45
+- descartado: 14
+
+5. Satisfaccion media (solo cerrados con puntuacion)
+- casos cerrados con satisfaccion: 40
+- satisfaccion_media: 4.1
+
+### Observacion de privacidad
+
+El CSV simulado contiene identificadores, correos y telefonos ficticios de prueba (dominio brasaland.test), por lo que no hay datos personales reales expuestos.

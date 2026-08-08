@@ -1,4 +1,5 @@
 import IncidentsAnalyzer from "./IncidentsAnalyzer";
+import Link from "next/link";
 
 export default function IncidenciasPage() {
   return (
@@ -18,12 +19,12 @@ export default function IncidenciasPage() {
         </header>
 
         <nav className="mt-6 flex flex-wrap gap-3 text-sm">
-          <a
+          <Link
             href="/"
             className="rounded-full border border-stone-700 px-4 py-2 text-stone-200 transition hover:border-cyan-300 hover:text-cyan-200"
           >
             Volver al panel principal
-          </a>
+          </Link>
         </nav>
 
         <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type Summary = {
   total_processed: number;
@@ -13,36 +13,16 @@ type Summary = {
   avg_satisfaction_closed_with_score: number;
 };
 
-function resolveApiBase(): string {
-  const configured = process.env.NEXT_PUBLIC_INCIDENTS_API_BASE;
-  if (configured && configured.trim().length > 0) {
-    return configured;
-  }
-
-  if (typeof window !== "undefined") {
-    const origin = window.location.origin;
-    if (origin.includes("-3000.")) {
-      return origin.replace("-3000.", "-8000.");
-    }
-  }
-
-  return "http://localhost:8000";
-}
-
 function formatMetricLabel(key: string): string {
   return key.replaceAll("_", " ");
 }
 
 export default function IncidentsAnalyzer() {
-  const [apiBase, setApiBase] = useState("mismo origen (/api)");
+  const apiBase = "mismo origen (/api)";
   const [file, setFile] = useState<File | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setApiBase("mismo origen (/api)");
-  }, []);
 
   const invalidTotal = useMemo(() => {
     if (!summary) return 0;

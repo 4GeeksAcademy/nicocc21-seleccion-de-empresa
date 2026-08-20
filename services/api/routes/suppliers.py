@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from services.api.auth import get_current_user
 from services.api.database import (
     create_supplier,
     delete_supplier,
@@ -19,7 +20,11 @@ from services.api.models import (
     SupplierUpdateStatus,
 )
 
-router = APIRouter(prefix="/suppliers", tags=["suppliers"])
+router = APIRouter(
+    prefix="/suppliers",
+    tags=["suppliers"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("", response_model=SupplierOut, status_code=status.HTTP_201_CREATED)

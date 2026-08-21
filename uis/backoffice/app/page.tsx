@@ -43,16 +43,34 @@ export default function BackofficePage() {
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Header */}
         <header className="rounded-3xl border border-amber-300/30 bg-gradient-to-br from-stone-900 to-red-950 p-8 shadow-2xl shadow-black/40">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">
-            Brasaland OPS Console
-          </p>
-          <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">
-            Panel interno de control financiero e inventarios
-          </h1>
-          <p className="mt-4 max-w-3xl text-sm text-stone-300 sm:text-base">
-            Plataforma interna para Dirección Ejecutiva y Jefatura de
-            Inventarios. Datos generados desde la lógica de negocio del Hito 2.
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">
+                Brasaland OPS Console
+              </p>
+              <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">
+                Panel interno de control financiero e inventarios
+              </h1>
+              <p className="mt-4 max-w-3xl text-sm text-stone-300 sm:text-base">
+                Plataforma interna para Dirección Ejecutiva y Jefatura de
+                Inventarios. Datos generados desde la lógica de negocio del Hito 2.
+              </p>
+            </div>
+            <div className="flex gap-2 text-sm">
+              <a
+                href="/account/profile"
+                className="rounded-full border border-stone-500 bg-stone-800 px-3 py-1.5 text-stone-200 transition hover:bg-stone-700"
+              >
+                Mi perfil
+              </a>
+              <a
+                href="/logout"
+                className="rounded-full border border-red-400/50 bg-red-950 px-3 py-1.5 text-red-200 transition hover:bg-red-900"
+              >
+                Cerrar sesión
+              </a>
+            </div>
+          </div>
           <nav className="mt-6 flex flex-wrap gap-3 text-sm">
             <a
               href="/suppliers"

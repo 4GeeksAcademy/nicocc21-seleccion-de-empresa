@@ -25,7 +25,8 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
+      ],
+      "@brasaland/auth-client": ["../../src/auth/auth-client"]
     }
   },
   "include": [

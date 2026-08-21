@@ -153,12 +153,26 @@ export default function CandidateList() {
                 </p>
               </div>
             </div>
-            <Link
-              href="/candidates/new"
-              className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500"
-            >
-              + Nueva candidatura
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/candidates/new"
+                className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500"
+              >
+                + Nueva candidatura
+              </Link>
+              <a
+                href="/account/profile"
+                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                Mi perfil
+              </a>
+              <a
+                href="/logout"
+                className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50"
+              >
+                Cerrar sesión
+              </a>
+            </div>
           </div>
         </div>
       </header>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -299,5 +300,112 @@ def update_profile(user_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
             return _serialize(doc)
         profiles.update(updates, doc_ids=[doc.doc_id])
         return _serialize(profiles.get(doc_id=doc.doc_id))
+    finally:
+        db.close()
+
+
+# =============================================================================
+# AUTH-03: Password Reset
+# =============================================================================
+
+RESET_TOKENS_TABLE = "password_resets"
+
+
+def hash_token(token: str) -> str:
+    """Hashea un token con SHA-256 para almacenamiento seguro."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def update_user_password(user_id: int, new_password_hash: str) -> bool:
+    """Actualiza la contraseña de un usuario y marca password_changed_at.
+
+    Retorna True si se actualizó correctamente.
+    """
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        doc = table.get(doc_id=user_id)
+        if doc is None:
+            return False
+        table.update(
+            {
+                "password_hash": new_password_hash,
+                "password_changed_at": utc_now().isoformat(),
+            },
+            doc_ids=[user_id],
+        )
+        return True
+    finally:
+        db.close()
+
+
+def store_reset_token(user_id: int, token_hash: str, expires_at: str) -> None:
+    """Almacena un token de restablecimiento en la tabla password_resets."""
+    db = _open_db()
+    try:
+        tokens = db.table(RESET_TOKENS_TABLE)
+        tokens.insert({
+            "user_id": user_id,
+            "token_hash": token_hash,
+            "used": False,
+            "expires_at": expires_at,
+            "created_at": utc_now().isoformat(),
+        })
+    finally:
+        db.close()
+
+
+def get_reset_token_record(token_hash: str) -> dict[str, Any] | None:
+    """Busca un registro de token por su hash."""
+    db = _open_db()
+    try:
+        tokens = db.table(RESET_TOKENS_TABLE)
+        doc = tokens.get(Query().token_hash == token_hash)
+        return _serialize(doc) if doc else None
+    finally:
+        db.close()
+
+
+def mark_reset_token_used(token_hash: str) -> bool:
+    """Marca un token como usado. Retorna True si existía."""
+    db = _open_db()
+    try:
+        tokens = db.table(RESET_TOKENS_TABLE)
+        doc = tokens.get(Query().token_hash == token_hash)
+        if doc is None:
+            return False
+        tokens.update({"used": True}, doc_ids=[doc.doc_id])
+        return True
+    finally:
+        db.close()
+
+
+def is_token_used_or_expired(token_hash: str, now_iso: str) -> bool:
+    """Verifica si un token ya fue usado o expiró.
+
+    Retorna True si el token no existe, ya fue usado, o su expires_at
+    es anterior a now_iso.
+    """
+    record = get_reset_token_record(token_hash)
+    if record is None:
+        return True
+    if record.get("used", False):
+        return True
+    expires_at = record.get("expires_at", "")
+    if expires_at < now_iso:
+        return True
+    return False
+
+
+def get_user_password_changed_at(user_id: int) -> str | None:
+    """Obtiene la fecha del último cambio de contraseña.
+
+    Se usa para invalidar tokens emitidos antes de ese momento.
+    """
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        doc = table.get(doc_id=user_id)
+        return doc.get("password_changed_at") if doc else None
     finally:
         db.close()

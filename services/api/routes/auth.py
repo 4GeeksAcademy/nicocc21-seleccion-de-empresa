@@ -5,7 +5,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from services.api.auth import (
     create_access_token,
+    create_reset_token,
+    decode_reset_token,
     get_current_user,
+    get_reset_link,
     hash_password,
     verify_password,
 )
@@ -14,8 +17,26 @@ from services.api.database import (
     create_user,
     get_profile_by_user_id,
     get_user_by_email,
+    get_user_by_id,
+    hash_token,
+    is_token_used_or_expired,
+    mark_reset_token_used,
+    store_reset_token,
+    update_user_password,
+    utc_now,
 )
-from services.api.models import Token, UserCreate, UserMeOut, UserMeProfile, UserOut
+from services.api.email_service import send_reset_email
+from services.api.models import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    MessageResponse,
+    ResetPasswordRequest,
+    Token,
+    UserCreate,
+    UserMeOut,
+    UserMeProfile,
+    UserOut,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -103,4 +124,144 @@ def get_me(current_user: dict = Depends(get_current_user)) -> UserMeOut:
         role=current_user.get("role", "user"),
         created_at=current_user.get("created_at", ""),
         profile=profile,
+    )
+
+
+# =============================================================================
+# AUTH-03: Forgot / Reset / Change Password
+# =============================================================================
+
+
+@router.post(
+    "/forgot-password",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
+    """Solicitar restablecimiento de contraseña.
+
+    Siempre devuelve 200 independientemente de si el email existe,
+    para evitar enumeración de usuarios.
+    Si el usuario existe, genera un token de restablecimiento,
+    lo almacena hasheado y envía un email con el enlace.
+    """
+    user = get_user_by_email(payload.email)
+
+    if user is not None:
+        try:
+            user_id = user["id"]
+            # Generar token JWT de corta duración
+            reset_token = create_reset_token(user_id)
+
+            # Extraer el jti para almacenarlo (el token ya tiene exp)
+            _, jti = decode_reset_token(reset_token)
+
+            # Calcular expires_at (sumando los minutos de expiración)
+            from datetime import datetime, timedelta, timezone
+            from services.api.auth import RESET_TOKEN_EXPIRE_MINUTES
+            expires_at = (
+                datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+            ).isoformat()
+
+            # Almacenar token hasheado
+            store_reset_token(
+                user_id=user_id,
+                token_hash=hash_token(reset_token),
+                expires_at=expires_at,
+            )
+
+            # Enviar email
+            reset_link = get_reset_link(reset_token)
+            send_reset_email(to_email=payload.email, reset_link=reset_link)
+
+        except Exception:
+            # Si falla el envío del email, no revelamos nada al usuario
+            # pero registramos el error internamente
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception("Error al procesar forgot-password para %s", payload.email)
+
+    # Siempre devolver el mismo mensaje
+    return MessageResponse(
+        message="Si esa dirección está registrada, recibirás un enlace para restablecer tu contraseña en breve."
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
+    """Restablecer contraseña con un token de restablecimiento.
+
+    Valida el token (firma, expiración, que no se haya usado ya).
+    Si es válido, hashea la nueva contraseña, actualiza el usuario
+    e invalida el token.
+    """
+    # 1. Decodificar el token JWT (valida firma y expiración)
+    try:
+        user_id, _ = decode_reset_token(payload.token)
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El enlace de restablecimiento es inválido o ha expirado. Solicita uno nuevo.",
+        )
+
+    # 2. Verificar que el token no se haya usado ya
+    token_hash = hash_token(payload.token)
+    now_iso = utc_now().isoformat()
+
+    if is_token_used_or_expired(token_hash, now_iso):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El enlace de restablecimiento ya fue utilizado o ha expirado. Solicita uno nuevo.",
+        )
+
+    # 3. Verificar que el usuario existe
+    user = get_user_by_id(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El enlace de restablecimiento es inválido o ha expirado. Solicita uno nuevo.",
+        )
+
+    # 4. Actualizar la contraseña
+    new_hash = hash_password(payload.new_password)
+    update_user_password(user_id, new_hash)
+
+    # 5. Invalidar el token
+    mark_reset_token_used(token_hash)
+
+    return MessageResponse(
+        message="Contraseña restablecida correctamente. Ya puedes iniciar sesión con tu nueva contraseña."
+    )
+
+
+@router.post(
+    "/change-password",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+) -> MessageResponse:
+    """Cambiar contraseña estando autenticado.
+
+    Verifica la contraseña actual antes de actualizarla.
+    """
+    # 1. Verificar contraseña actual
+    if not verify_password(payload.current_password, current_user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contraseña actual no es correcta.",
+        )
+
+    # 2. Actualizar a la nueva contraseña
+    new_hash = hash_password(payload.new_password)
+    update_user_password(current_user["id"], new_hash)
+
+    return MessageResponse(
+        message="Contraseña actualizada correctamente."
     )

@@ -57,7 +57,9 @@ export default function LoginForm() {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Correo electrónico
               </label>
-              <input
+              <div class="text-right"><a href="/forgot-password" class="text-xs text-amber-400 underline hover:text-amber-300">¿Olvidaste tu contraseña?</a></div>
+
+<input
                 id="email"
                 type="email"
                 required
@@ -72,7 +74,9 @@ export default function LoginForm() {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Contraseña
               </label>
-              <input
+              <div class="text-right"><a href="/forgot-password" class="text-xs text-amber-400 underline hover:text-amber-300">¿Olvidaste tu contraseña?</a></div>
+
+<input
                 id="password"
                 type="password"
                 required

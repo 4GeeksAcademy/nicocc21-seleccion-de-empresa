@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from services.api.database import (
+from services.brasaland_api.database import (
     create_supplier,
     delete_supplier,
     get_supplier_by_id,
@@ -10,7 +10,7 @@ from services.api.database import (
     update_supplier_rate,
     update_supplier_status,
 )
-from services.api.models import (
+from services.brasaland_api.models import (
     Country,
     SupplierCategory,
     SupplierCreate,

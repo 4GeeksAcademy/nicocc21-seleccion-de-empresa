@@ -1,3 +1,10 @@
+"""
+Validacion compartida de incidencias Brasaland.
+
+Funciones reutilizables para validar y analizar filas de incidencias
+tanto desde CSV historico como desde la API.
+"""
+
 from __future__ import annotations
 
 import csv
@@ -5,6 +12,7 @@ import io
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
 
 REQUIRED_FIELDS = [
     "incident_id",

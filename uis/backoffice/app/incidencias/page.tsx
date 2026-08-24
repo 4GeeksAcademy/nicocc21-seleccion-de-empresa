@@ -1,3 +1,8 @@
+"use client";
+
+import { useCallback } from "react";
+import IncidentForm from "./IncidentForm";
+import IncidentList from "./IncidentList";
 import IncidentsAnalyzer from "./IncidentsAnalyzer";
 import Link from "next/link";
 
@@ -10,11 +15,11 @@ export default function IncidenciasPage() {
             Postventa Brasaland
           </p>
           <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">
-            Analizador interno de incidencias
+            Gestión de incidencias
           </h1>
           <p className="mt-4 max-w-3xl text-sm text-stone-300 sm:text-base">
-            Sube el CSV de incidencias para validar registros, obtener métricas y
-            exportar resultados sin exponer datos sensibles fuera de la empresa.
+            Registra, filtra y da seguimiento a incidencias de los 14 locales Brasaland
+            en Colombia y USA.
           </p>
         </header>
 
@@ -27,7 +32,20 @@ export default function IncidenciasPage() {
           </Link>
         </nav>
 
+        {/* Nuevo: Formulario de creación */}
         <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
+          <IncidentForm onCreated={() => window.location.reload()} />
+        </section>
+
+        {/* Listado con filtros y resumen */}
+        <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
+          <h2 className="mb-6 text-xl font-bold text-cyan-200">Incidencias registradas</h2>
+          <IncidentList />
+        </section>
+
+        {/* Analizador CSV (existente) */}
+        <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
+          <h2 className="mb-6 text-xl font-bold text-cyan-200">Analizador CSV</h2>
           <IncidentsAnalyzer />
         </section>
       </main>

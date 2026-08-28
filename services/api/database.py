@@ -153,3 +153,151 @@ def seed_suppliers(seed_data: list[dict[str, Any]]) -> tuple[int, int]:
         return inserted, skipped
     finally:
         db.close()
+
+
+# =============================================================================
+# Users
+# =============================================================================
+
+USERS_TABLE = "users"
+
+
+def create_user(
+    email: str,
+    password_hash: str,
+    role: str = "user",
+) -> dict[str, Any]:
+    """Crea un usuario con credenciales. Retorna el usuario creado."""
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        if table.contains(Query().email == email):
+            raise ValueError("Ya existe un usuario con ese email")
+        user_id = int(table.insert({
+            "email": email,
+            "password_hash": password_hash,
+            "is_active": True,
+            "role": role,
+            "created_at": utc_now().isoformat(),
+        }))
+        return _serialize(table.get(doc_id=user_id))
+    finally:
+        db.close()
+
+
+def get_user_by_email(email: str) -> dict[str, Any] | None:
+    """Busca usuario por email (para login)."""
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        doc = table.get(Query().email == email)
+        return _serialize(doc) if doc else None
+    finally:
+        db.close()
+
+
+def get_user_by_id(user_id: int) -> dict[str, Any] | None:
+    """Busca usuario por ID."""
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        doc = table.get(doc_id=user_id)
+        return _serialize(doc) if doc else None
+    finally:
+        db.close()
+
+
+def list_users() -> list[dict[str, Any]]:
+    """Lista todos los usuarios."""
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        return [_serialize(doc) for doc in table.all()]
+    finally:
+        db.close()
+
+
+def update_user(user_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
+    """Actualiza campos de credenciales de un usuario (email, role, is_active)."""
+    db = _open_db()
+    try:
+        table = db.table(USERS_TABLE)
+        doc = table.get(doc_id=user_id)
+        if doc is None:
+            return None
+        # Verificar que el email no esté en uso por otro usuario
+        if "email" in data and data["email"] != doc.get("email"):
+            if table.contains(Query().email == data["email"]):
+                raise ValueError("Ya existe otro usuario con ese email")
+        updates = {k: v for k, v in data.items() if v is not None}
+        if not updates:
+            return _serialize(doc)
+        table.update(updates, doc_ids=[user_id])
+        return _serialize(table.get(doc_id=user_id))
+    finally:
+        db.close()
+
+
+def delete_user(user_id: int) -> bool:
+    """Elimina un usuario y su perfil asociado. Retorna True si existía."""
+    db = _open_db()
+    try:
+        users = db.table(USERS_TABLE)
+        profiles = db.table(PROFILES_TABLE)
+        if users.get(doc_id=user_id) is None:
+            return False
+        users.remove(doc_ids=[user_id])
+        profile = profiles.get(Query().user_id == user_id)
+        if profile:
+            profiles.remove(doc_ids=[profile.doc_id])
+        return True
+    finally:
+        db.close()
+
+
+# =============================================================================
+# Profiles
+# =============================================================================
+
+PROFILES_TABLE = "profiles"
+
+
+def create_profile(user_id: int, data: dict[str, Any]) -> dict[str, Any]:
+    """Crea un perfil vinculado a un usuario."""
+    db = _open_db()
+    try:
+        profiles = db.table(PROFILES_TABLE)
+        if profiles.contains(Query().user_id == user_id):
+            raise ValueError("El usuario ya tiene un perfil")
+        profile_id = int(profiles.insert({"user_id": user_id, **data}))
+        return _serialize(profiles.get(doc_id=profile_id))
+    finally:
+        db.close()
+
+
+def get_profile_by_user_id(user_id: int) -> dict[str, Any] | None:
+    """Busca perfil por user_id."""
+    db = _open_db()
+    try:
+        profiles = db.table(PROFILES_TABLE)
+        doc = profiles.get(Query().user_id == user_id)
+        return _serialize(doc) if doc else None
+    finally:
+        db.close()
+
+
+def update_profile(user_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
+    """Actualiza perfil existente. Solo actualiza campos no None."""
+    db = _open_db()
+    try:
+        profiles = db.table(PROFILES_TABLE)
+        doc = profiles.get(Query().user_id == user_id)
+        if doc is None:
+            return None
+        updates = {k: v for k, v in data.items() if v is not None}
+        if not updates:
+            return _serialize(doc)
+        profiles.update(updates, doc_ids=[doc.doc_id])
+        return _serialize(profiles.get(doc_id=doc.doc_id))
+    finally:
+        db.close()

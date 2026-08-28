@@ -24,7 +24,8 @@
       "@brasaland/collections": ["../../src/hito2/collections"],
       "@brasaland/aggregations": ["../../src/hito2/aggregations"],
       "@brasaland/inventory-alerts": ["../../src/hito2/inventory-alerts"],
-      "@brasaland/sample-data": ["../../src/hito2/sample-data"]
+      "@brasaland/sample-data": ["../../src/hito2/sample-data"],
+      "@brasaland/auth-client": ["../../src/auth/auth-client"]
     }
   },
   "include": [

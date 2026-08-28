@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class Country(str, Enum):
@@ -68,3 +69,103 @@ class SupplierUpdateStatus(BaseModel):
 class SupplierOut(SupplierBase):
     id: int
     updated_at: datetime
+
+
+# --- Auth / Users ---
+
+
+class UserRole(str, Enum):
+    admin = "admin"
+    manager = "manager"
+    user = "user"
+
+
+class UserCreate(BaseModel):
+    """Registro de usuario: credenciales + perfil opcional."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    email: str = Field(min_length=5)
+    password: str = Field(min_length=6)
+    # Campos opcionales de perfil inicial
+    name: str | None = Field(default=None, min_length=1)
+    phone: str | None = None
+    address: str | None = None
+
+
+class UserOut(BaseModel):
+    """Respuesta sin contraseña."""
+
+    id: int
+    email: str
+    is_active: bool
+    role: UserRole
+    created_at: str
+
+
+class UserUpdate(BaseModel):
+    """Actualizar credenciales — solo admin puede cambiar email/role."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    email: str | None = Field(default=None, min_length=5)
+    role: UserRole | None = None
+
+
+class Token(BaseModel):
+    """Respuesta del login."""
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserMeProfile(BaseModel):
+    """Datos de perfil embebidos en la respuesta /auth/me."""
+
+    full_name: str
+    phone: str | None = None
+    address: str | None = None
+
+
+class UserMeOut(BaseModel):
+    """Respuesta de GET /auth/me: datos del usuario + perfil vinculado."""
+
+    id: int
+    email: str
+    is_active: bool
+    role: UserRole
+    created_at: str
+    profile: UserMeProfile | None = None
+
+
+# --- Profiles ---
+
+
+class ProfileCreate(BaseModel):
+    """Crear perfil (nombre visible + datos de contacto)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    full_name: str = Field(min_length=1)
+    phone: str | None = None
+    address: str | None = None
+
+
+class ProfileUpdate(BaseModel):
+    """Actualizar perfil — todos opcionales."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    full_name: str | None = Field(default=None, min_length=1)
+    phone: str | None = None
+    address: str | None = None
+
+
+class ProfileOut(BaseModel):
+    """Respuesta de perfil."""
+
+    id: int
+    user_id: int
+    full_name: str
+    phone: str | None = None
+    address: str | None = None

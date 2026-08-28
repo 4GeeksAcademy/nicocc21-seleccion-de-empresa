@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getToken } from "../../../../src/auth/auth-client";
+import { getToken, getMe } from "../../../../src/auth/auth-client";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -11,9 +11,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const token = getToken();
     if (!token) {
       router.replace("/login");
-    } else {
-      setChecked(true);
+      return;
     }
+
+    // Validar el token contra /auth/me en el backend
+    getMe()
+      .then(() => setChecked(true))
+      .catch(() => {
+        router.replace("/login");
+      });
   }, [router]);
 
   if (!checked) {

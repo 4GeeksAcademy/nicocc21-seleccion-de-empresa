@@ -169,6 +169,7 @@ def create_user(
     role: str = "user",
 ) -> dict[str, Any]:
     """Crea un usuario con credenciales. Retorna el usuario creado."""
+    email = email.lower()
     db = _open_db()
     try:
         table = db.table(USERS_TABLE)
@@ -188,6 +189,7 @@ def create_user(
 
 def get_user_by_email(email: str) -> dict[str, Any] | None:
     """Busca usuario por email (para login)."""
+    email = email.lower()
     db = _open_db()
     try:
         table = db.table(USERS_TABLE)

@@ -34,76 +34,88 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-400 font-extrabold text-white text-lg">
-            T
-          </span>
-          <h1 className="mt-4 text-2xl font-black text-gray-900">Brasaland</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Pipeline de Selección — Inicia sesión
-          </p>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-red-500/20 bg-red-950/50 p-3 text-sm text-red-300">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <span>{error}</span>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg border border-red-400 bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
+      )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Correo electrónico
-              </label>
-              <div class="text-right"><a href="/forgot-password" class="text-xs text-amber-400 underline hover:text-amber-300">¿Olvidaste tu contraseña?</a></div>
-
-<input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@brasaland.com"
-                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña
-              </label>
-              <div class="text-right"><a href="/forgot-password" class="text-xs text-amber-400 underline hover:text-amber-300">¿Olvidaste tu contraseña?</a></div>
-
-<input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow transition hover:bg-blue-500 disabled:opacity-50"
-            >
-              {loading ? "Iniciando sesión…" : "Iniciar sesión"}
-            </button>
-
-            <p className="text-center text-xs text-gray-500">
-              ¿No tienes cuenta?{" "}
-              <a href="/register" className="text-blue-600 underline hover:text-blue-500">
-                Regístrate
-              </a>
-            </p>
-          </form>
-        </div>
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-stone-300">
+          Correo electrónico
+        </label>
+        <input
+          id="email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="usuario@brasaland.com"
+          autoComplete="email"
+          className="mt-1.5 block w-full rounded-lg border border-stone-700 bg-stone-800/50 px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 transition-colors focus:border-amber-500/50 focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+        />
       </div>
-    </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-stone-300">
+          Contraseña
+        </label>
+        <input
+          id="password"
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          autoComplete="current-password"
+          className="mt-1.5 block w-full rounded-lg border border-stone-700 bg-stone-800/50 px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 transition-colors focus:border-amber-500/50 focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-2 text-xs text-stone-500">
+          <input
+            type="checkbox"
+            className="rounded border-stone-600 bg-stone-800 text-amber-500 focus:ring-amber-500/20"
+          />
+          Recordar sesión
+        </label>
+        <a
+          href="/forgot-password"
+          className="text-xs font-medium text-amber-400 transition-colors hover:text-amber-300"
+        >
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2.5 text-sm font-bold text-stone-950 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-500 hover:to-amber-400 hover:shadow-amber-500/30 disabled:opacity-50 disabled:shadow-none"
+      >
+        {loading ? (
+          <>
+            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Iniciando sesión…
+          </>
+        ) : (
+          "Iniciar sesión"
+        )}
+      </button>
+
+      <p className="text-center text-xs text-stone-500">
+        ¿No tienes cuenta?{" "}
+        <a href="/register" className="font-medium text-amber-400 underline transition-colors hover:text-amber-300 underline-offset-2">
+          Regístrate
+        </a>
+      </p>
+    </form>
   );
 }

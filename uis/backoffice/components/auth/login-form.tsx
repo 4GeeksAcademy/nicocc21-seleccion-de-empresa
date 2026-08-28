@@ -34,10 +34,13 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-red-500/40 bg-red-950 p-3 text-sm text-red-200">
-          {error}
+        <div className="flex items-start gap-2.5 rounded-lg border border-red-500/20 bg-red-950/50 p-3 text-sm text-red-300">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
@@ -52,7 +55,8 @@ export default function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="usuario@brasaland.com"
-          className="mt-1 block w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+          autoComplete="email"
+          className="mt-1.5 block w-full rounded-lg border border-stone-700 bg-stone-800/50 px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 transition-colors focus:border-amber-500/50 focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
         />
       </div>
 
@@ -67,14 +71,22 @@ export default function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="mt-1 block w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder-stone-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+          autoComplete="current-password"
+          className="mt-1.5 block w-full rounded-lg border border-stone-700 bg-stone-800/50 px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 transition-colors focus:border-amber-500/50 focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
         />
       </div>
 
-      <div className="text-right">
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-2 text-xs text-stone-500">
+          <input
+            type="checkbox"
+            className="rounded border-stone-600 bg-stone-800 text-amber-500 focus:ring-amber-500/20"
+          />
+          Recordar sesión
+        </label>
         <a
           href="/forgot-password"
-          className="text-xs text-amber-400 underline hover:text-amber-300"
+          className="text-xs font-medium text-amber-400 transition-colors hover:text-amber-300"
         >
           ¿Olvidaste tu contraseña?
         </a>
@@ -83,14 +95,24 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2 text-sm font-bold text-stone-950 shadow transition hover:from-amber-500 hover:to-amber-400 disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2.5 text-sm font-bold text-stone-950 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-500 hover:to-amber-400 hover:shadow-amber-500/30 disabled:opacity-50 disabled:shadow-none"
       >
-        {loading ? "Iniciando sesión…" : "Iniciar sesión"}
+        {loading ? (
+          <>
+            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Iniciando sesión…
+          </>
+        ) : (
+          "Iniciar sesión"
+        )}
       </button>
 
       <p className="text-center text-xs text-stone-500">
         ¿No tienes cuenta?{" "}
-        <a href="/register" className="text-amber-400 underline hover:text-amber-300">
+        <a href="/register" className="font-medium text-amber-400 underline transition-colors hover:text-amber-300 underline-offset-2">
           Regístrate
         </a>
       </p>

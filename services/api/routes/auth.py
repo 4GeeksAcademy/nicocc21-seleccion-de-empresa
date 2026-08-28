@@ -226,11 +226,18 @@ def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
             detail="El enlace de restablecimiento es inválido o ha expirado. Solicita uno nuevo.",
         )
 
-    # 4. Actualizar la contraseña
+    # 4. Verificar que la nueva contraseña sea diferente a la actual
+    if verify_password(payload.new_password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe ser diferente a la actual.",
+        )
+
+    # 5. Actualizar la contraseña
     new_hash = hash_password(payload.new_password)
     update_user_password(user_id, new_hash)
 
-    # 5. Invalidar el token
+    # 6. Invalidar el token
     mark_reset_token_used(token_hash)
 
     return MessageResponse(
@@ -258,7 +265,14 @@ def change_password(
             detail="La contraseña actual no es correcta.",
         )
 
-    # 2. Actualizar a la nueva contraseña
+    # 2. Verificar que la nueva contraseña sea diferente a la actual
+    if verify_password(payload.new_password, current_user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe ser diferente a la actual.",
+        )
+
+    # 3. Actualizar a la nueva contraseña
     new_hash = hash_password(payload.new_password)
     update_user_password(current_user["id"], new_hash)
 

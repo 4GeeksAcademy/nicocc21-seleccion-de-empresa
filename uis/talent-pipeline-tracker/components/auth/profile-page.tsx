@@ -35,10 +35,16 @@ export default function ProfilePage() {
         setFullName(data.profile?.full_name ?? "");
         setPhone(data.profile?.phone ?? "");
         setAddress(data.profile?.address ?? "");
-      } catch {
+      } catch (err: unknown) {
         if (cancelled) return;
-        logout();
-        router.push("/login");
+        setLoading(false);
+        const message = err instanceof Error ? err.message : "Error al cargar perfil";
+        if (message === "Sesión expirada") {
+          logout();
+          router.push("/login");
+          return;
+        }
+        setError(message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -60,12 +66,8 @@ export default function ProfilePage() {
       await updateProfile({ full_name: fullName, phone, address });
       setSaved(true);
     } catch (err: unknown) {
-      if (err instanceof Response) {
-        const body = await err.json().catch(() => ({ detail: "Error de conexión" }));
-        setError(body.detail ?? "Error al guardar");
-      } else {
-        setError("Error al guardar");
-      }
+      const message = err instanceof Error ? err.message : "Error al guardar";
+      setError(message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -73,16 +75,16 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Cargando perfil…</p>
+      <div className="flex min-h-screen items-center justify-center bg-stone-950">
+        <p className="text-stone-400">Cargando perfil…</p>
       </div>
     );
   }
 
   if (error && !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="rounded-lg border border-red-400 bg-red-50 p-4 text-sm text-red-700">
+      <div className="flex min-h-screen items-center justify-center bg-stone-950">
+        <div className="rounded-lg border border-red-500/40 bg-red-950 p-4 text-sm text-red-200">
           {error}
         </div>
       </div>
@@ -90,41 +92,41 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-stone-950 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-400 font-extrabold text-white text-lg">
-            T
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-red-700 to-amber-500 font-extrabold text-white text-lg">
+            B
           </span>
-          <h1 className="mt-4 text-2xl font-black text-gray-900">Mi perfil</h1>
+          <h1 className="mt-4 text-2xl font-black text-stone-100">Mi perfil</h1>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+        <div className="rounded-2xl border border-stone-700 bg-stone-900 p-6">
           {saved && (
-            <div className="mb-4 rounded-lg border border-green-400 bg-green-50 p-3 text-sm text-green-700">
+            <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-950 p-3 text-sm text-emerald-200">
               Perfil actualizado correctamente.
             </div>
           )}
 
           {error && (
-            <div className="mb-4 rounded-lg border border-red-400 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg border border-red-500/40 bg-red-950 p-3 text-sm text-red-200">
               {error}
             </div>
           )}
 
           {/* Datos de solo lectura */}
-          <div className="mb-6 space-y-2 rounded-lg bg-gray-50 p-4 text-sm">
+          <div className="mb-6 space-y-2 rounded-lg bg-stone-800 p-4 text-sm">
             <div>
-              <span className="text-gray-500">Email</span>
-              <p className="text-gray-900">{profile?.email}</p>
+              <span className="text-stone-400">Email</span>
+              <p className="text-stone-100">{profile?.email}</p>
             </div>
             <div>
-              <span className="text-gray-500">Rol</span>
-              <p className="text-gray-900">{profile?.role}</p>
+              <span className="text-stone-400">Rol</span>
+              <p className="text-stone-100">{profile?.role}</p>
             </div>
             <div>
-              <span className="text-gray-500">Creado</span>
-              <p className="text-gray-900">
+              <span className="text-stone-400">Creado</span>
+              <p className="text-stone-100">
                 {profile?.created_at
                   ? new Date(profile.created_at).toLocaleDateString("es-CO")
                   : "—"}
@@ -134,7 +136,7 @@ export default function ProfilePage() {
 
           <form onSubmit={handleSave} className="space-y-4">
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="fullName" className="block text-sm font-medium text-stone-300">
                 Nombre completo
               </label>
               <input
@@ -142,12 +144,12 @@ export default function ProfilePage() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-sm text-stone-100 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="phone" className="block text-sm font-medium text-stone-300">
                 Teléfono
               </label>
               <input
@@ -155,12 +157,12 @@ export default function ProfilePage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-sm text-stone-100 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="address" className="block text-sm font-medium text-stone-300">
                 Dirección
               </label>
               <input
@@ -168,7 +170,7 @@ export default function ProfilePage() {
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-sm text-stone-100 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
             </div>
 
@@ -176,13 +178,13 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow transition hover:bg-blue-500 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2 text-sm font-bold text-stone-950 shadow transition hover:from-amber-500 hover:to-amber-400 disabled:opacity-50"
               >
                 {saving ? "Guardando…" : "Guardar cambios"}
               </button>
               <a
                 href="/"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                className="rounded-lg border border-stone-600 bg-stone-800 px-4 py-2 text-sm font-medium text-stone-200 transition hover:bg-stone-700"
               >
                 Volver
               </a>

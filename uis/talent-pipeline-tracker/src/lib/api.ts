@@ -6,19 +6,42 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://playground.4geeks.co
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_URL}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+  let response: Response;
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    });
+  } catch (err: unknown) {
+    throw new Error(
+      err instanceof Error ? err.message : "No se pudo conectar con la API de talento."
+    );
   }
 
-  return response.json();
+  if (!response.ok) {
+    let detail = `Error ${response.status}: ${response.statusText}`;
+    try {
+      const body = (await response.json()) as { detail?: string | Array<{ msg?: string }> };
+      if (typeof body.detail === "string") {
+        detail = body.detail;
+      } else if (Array.isArray(body.detail) && body.detail.length > 0 && body.detail[0]?.msg) {
+        detail = body.detail[0].msg;
+      }
+    } catch {
+      // ignore JSON parse errors, use default detail
+    }
+    throw new Error(detail);
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error("La respuesta de la API no tiene un formato valido.");
+  }
 }
 
 export async function getCandidates(

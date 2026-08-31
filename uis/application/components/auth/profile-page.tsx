@@ -35,10 +35,16 @@ export default function ProfilePage() {
         setFullName(data.profile?.full_name ?? "");
         setPhone(data.profile?.phone ?? "");
         setAddress(data.profile?.address ?? "");
-      } catch {
+      } catch (err: unknown) {
         if (cancelled) return;
-        logout();
-        router.push("/login");
+        setLoading(false);
+        const message = err instanceof Error ? err.message : "Error al cargar perfil";
+        if (message === "Sesión expirada") {
+          logout();
+          router.push("/login");
+          return;
+        }
+        setError(message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -60,12 +66,8 @@ export default function ProfilePage() {
       await updateProfile({ full_name: fullName, phone, address });
       setSaved(true);
     } catch (err: unknown) {
-      if (err instanceof Response) {
-        const body = await err.json().catch(() => ({ detail: "Error de conexión" }));
-        setError(body.detail ?? "Error al guardar");
-      } else {
-        setError("Error al guardar");
-      }
+      const message = err instanceof Error ? err.message : "Error al guardar";
+      setError(message || "Error al guardar");
     } finally {
       setSaving(false);
     }

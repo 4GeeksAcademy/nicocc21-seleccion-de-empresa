@@ -239,7 +239,7 @@ if (form) {
 		});
 	});
 
-	form.addEventListener("submit", (event) => {
+	form.addEventListener("submit", async (event) => {
 		event.preventDefault();
 		successMessage.classList.add("hidden");
 
@@ -251,8 +251,56 @@ if (form) {
 			return;
 		}
 
-		successMessage.classList.remove("hidden");
-		successMessage.scrollIntoView({ behavior: "smooth", block: "nearest" });
+		// Cambiar estado del boton
+		const submitBtn = form.querySelector('button[type="submit"]');
+		const originalText = submitBtn ? submitBtn.textContent : "";
+		if (submitBtn) {
+			submitBtn.disabled = true;
+			submitBtn.textContent = "Enviando...";
+		}
+
+		try {
+			const formData = new FormData(form);
+			const data = Object.fromEntries(formData.entries());
+
+			const response = await fetch("/api/applications", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(data),
+			});
+
+			if (!response.ok) {
+				let detail = "Error al enviar la solicitud. Intenta de nuevo.";
+				try {
+					const body = await response.json();
+					if (body.detail) detail = body.detail;
+				} catch {
+					// Ignorar error de parseo, usar mensaje por defecto
+				}
+				throw new Error(detail);
+			}
+
+			successMessage.classList.remove("hidden");
+			successMessage.scrollIntoView({ behavior: "smooth", block: "nearest" });
+		} catch (err: unknown) {
+			const errorMsg = err instanceof Error ? err.message : "Error de conexion. Verifica tu internet e intenta de nuevo.";
+			let errorEl = form.querySelector("#submitError");
+			if (errorEl) {
+				errorEl.textContent = errorMsg;
+			} else {
+				errorEl = document.createElement("div");
+				errorEl.id = "submitError";
+				errorEl.className = "rounded-lg border border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700";
+				errorEl.textContent = errorMsg;
+				form.prepend(errorEl);
+			}
+			errorEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+		} finally {
+			if (submitBtn) {
+				submitBtn.disabled = false;
+				submitBtn.textContent = originalText;
+			}
+		}
 	});
 
 	if (resetButton) {

@@ -68,8 +68,12 @@ def print_summary(summary: dict[str, Any]) -> None:
 
 
 def export_results(summary: dict[str, Any], output_path: Path) -> None:
-    with output_path.open("w", encoding="utf-8", newline="") as csvfile:
-        csvfile.write(summary_to_csv_text(summary))
+    try:
+        with output_path.open("w", encoding="utf-8", newline="") as csvfile:
+            csvfile.write(summary_to_csv_text(summary))
+    except OSError as error:
+        print(f"Error al escribir el archivo {output_path}: {error}")
+        raise
 
 
 def prompt_export() -> bool:
@@ -90,15 +94,28 @@ def main() -> int:
         print(f"Error: {error}")
         return 1
 
-    summary = analyze_rows(rows)
+    if not rows:
+        print("Error: El archivo CSV no contiene datos (solo cabecera).")
+        return 1
+
+    try:
+        summary = analyze_rows(rows)
+    except Exception as error:
+        print(f"Error inesperado al analizar las filas: {error}")
+        return 1
+
     print_summary(summary)
 
-    if prompt_export():
-        output_path = Path("results.csv")
-        export_results(summary, output_path)
-        print(f"\nExportacion completada: {output_path.resolve()}")
-    else:
-        print("\nNo se exportaron resultados.")
+    try:
+        if prompt_export():
+            output_path = Path("results.csv")
+            export_results(summary, output_path)
+            print(f"\nExportacion completada: {output_path.resolve()}")
+        else:
+            print("\nNo se exportaron resultados.")
+    except OSError as error:
+        print(f"Error al exportar: {error}")
+        return 1
 
     return 0
 

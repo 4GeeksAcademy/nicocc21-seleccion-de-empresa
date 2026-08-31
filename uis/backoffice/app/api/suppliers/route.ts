@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 const BACKEND_BASE =
   process.env.SUPPLIERS_BACKEND_BASE_URL ?? "http://127.0.0.1:8001";
 
+function forwardHeaders(request: Request): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const auth = request.headers.get("Authorization");
+  if (auth) headers["Authorization"] = auth;
+  return headers;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,6 +23,7 @@ export async function GET(request: Request) {
 
     const response = await fetch(upstreamUrl.toString(), {
       method: "GET",
+      headers: { ...forwardHeaders(request) },
       cache: "no-store",
     });
 
@@ -42,6 +50,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...forwardHeaders(request),
       },
       body: JSON.stringify(payload),
       cache: "no-store",

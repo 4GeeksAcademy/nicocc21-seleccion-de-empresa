@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -39,6 +41,7 @@ from services.api.models import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+_logger = logging.getLogger(__name__)
 
 
 def _user_to_out(user: dict) -> UserOut:
@@ -82,8 +85,7 @@ def register(payload: UserCreate) -> UserOut:
                 },
             )
         except ValueError:
-            # Si falla la creación del perfil, no es crítico — el usuario ya se creó
-            pass
+            _logger.warning("No se pudo crear perfil para usuario %s", user["id"])
 
     return _user_to_out(user)
 
@@ -175,11 +177,7 @@ def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
             send_reset_email(to_email=payload.email, reset_link=reset_link)
 
         except Exception:
-            # Si falla el envío del email, no revelamos nada al usuario
-            # pero registramos el error internamente
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.exception("Error al procesar forgot-password para %s", payload.email)
+            _logger.exception("Error al procesar forgot-password para %s", payload.email)
 
     # Siempre devolver el mismo mensaje
     return MessageResponse(

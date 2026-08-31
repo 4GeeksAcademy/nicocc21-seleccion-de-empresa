@@ -18,10 +18,17 @@ from services.api.routes.profiles import router as profiles_router
 from services.api.routes.suppliers import router as suppliers_router
 from services.api.seed import run_seed
 
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    run_seed(verbose=False)
+    try:
+        run_seed(verbose=False)
+    except Exception:
+        _logger.exception("Error al ejecutar seed durante el inicio")
     yield
 
 

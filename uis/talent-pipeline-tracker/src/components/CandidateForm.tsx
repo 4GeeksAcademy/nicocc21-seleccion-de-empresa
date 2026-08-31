@@ -72,8 +72,9 @@ export default function CandidateForm({ mode, initialData }: CandidateFormProps)
         router.push(`/candidates/${created.id}`);
       }
       router.refresh();
-    } catch {
-      setError(isEdit ? "Error al guardar los cambios" : "Error al crear la candidatura");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : isEdit ? "Error al guardar los cambios" : "Error al crear la candidatura";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

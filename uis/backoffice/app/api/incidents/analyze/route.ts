@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 const BACKEND_BASE =
   process.env.INCIDENTS_BACKEND_BASE_URL ?? "http://127.0.0.1:8000";
 
+function forwardHeaders(request: Request): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const auth = request.headers.get("Authorization");
+  if (auth) headers["Authorization"] = auth;
+  return headers;
+}
+
 export async function POST(request: Request) {
   try {
     const incomingFormData = await request.formData();
@@ -20,6 +27,7 @@ export async function POST(request: Request) {
 
     const response = await fetch(`${BACKEND_BASE}/api/incidents/analyze`, {
       method: "POST",
+      headers: { ...forwardHeaders(request) },
       body: forwardData,
       cache: "no-store",
     });

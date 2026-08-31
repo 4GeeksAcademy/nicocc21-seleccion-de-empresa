@@ -84,8 +84,25 @@ export default function ProfilePage() {
   if (error && !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-stone-950">
-        <div className="rounded-lg border border-red-500/40 bg-red-950 p-4 text-sm text-red-200">
-          {error}
+        <div className="text-center">
+          <div className="rounded-lg border border-red-500/40 bg-red-950 p-4 text-sm text-red-200">
+            {error}
+          </div>
+          <div className="mt-4 flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-lg border border-stone-600 bg-stone-800 px-4 py-2 text-sm font-medium text-stone-200 transition hover:bg-stone-700"
+            >
+              Reintentar
+            </button>
+            <a
+              href="/"
+              className="rounded-lg border border-stone-600 bg-stone-800 px-4 py-2 text-sm font-medium text-stone-200 transition hover:bg-stone-700"
+            >
+              Volver al inicio
+            </a>
+          </div>
         </div>
       </div>
     );

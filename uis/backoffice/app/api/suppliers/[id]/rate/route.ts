@@ -17,9 +17,17 @@ type Context = {
 export async function PATCH(request: Request, context: Context) {
   const { id } = await context.params;
 
+  let payload: unknown;
   try {
-    const payload = await request.json();
+    payload = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "El cuerpo de la solicitud no tiene un formato JSON valido." },
+      { status: 400 }
+    );
+  }
 
+  try {
     const response = await fetch(`${BACKEND_BASE}/suppliers/${id}/rate`, {
       method: "PATCH",
       headers: {

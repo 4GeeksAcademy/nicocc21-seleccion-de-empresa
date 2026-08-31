@@ -11,20 +11,29 @@ function forwardHeaders(request: Request): Record<string, string> {
 }
 
 export async function POST(request: Request) {
+  let incomingFormData: FormData;
   try {
-    const incomingFormData = await request.formData();
-    const file = incomingFormData.get("file");
+    incomingFormData = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "El cuerpo de la solicitud no es valido." },
+      { status: 400 }
+    );
+  }
 
-    if (!file || !(file instanceof File)) {
-      return NextResponse.json(
-        { error: "No se encontro archivo CSV en el formulario. Usa el campo 'file'." },
-        { status: 400 }
-      );
-    }
+  const file = incomingFormData.get("file");
 
-    const forwardData = new FormData();
-    forwardData.append("file", file);
+  if (!file || !(file instanceof File)) {
+    return NextResponse.json(
+      { error: "No se encontro archivo CSV en el formulario. Usa el campo 'file'." },
+      { status: 400 }
+    );
+  }
 
+  const forwardData = new FormData();
+  forwardData.append("file", file);
+
+  try {
     const response = await fetch(`${BACKEND_BASE}/api/incidents/analyze`, {
       method: "POST",
       headers: { ...forwardHeaders(request) },

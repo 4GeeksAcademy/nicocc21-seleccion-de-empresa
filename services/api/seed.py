@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -24,16 +25,22 @@ def run_seed(verbose: bool = True) -> tuple[int, int, int]:
         print(f"Omitidos (ya existentes): {skipped}")
 
     # --- Seed de usuario admin ---
-    admin_email = "admin@brasaland.com"
+    admin_email = os.getenv("SEED_ADMIN_EMAIL", "admin@brasaland.com")
+    admin_password = os.getenv("SEED_ADMIN_PASSWORD", "Admin1234")
     existing = get_user_by_email(admin_email)
     if existing is None:
         create_user(
             email=admin_email,
-            password_hash=hash_password("Admin1234"),
+            password_hash=hash_password(admin_password),
             role="admin",
         )
         if verbose:
-            print(f"\nUsuario admin creado: {admin_email} / Admin1234")
+            print(f"\nUsuario admin creado: {admin_email}")
+            if os.getenv("SEED_ADMIN_PASSWORD") is None:
+                print("  Password por defecto (cámbiala en el primer inicio de sesión)")
+    else:
+        if verbose:
+            print(f"\nUsuario admin ya existe: {admin_email}")
 
     return inserted, skipped, total
 

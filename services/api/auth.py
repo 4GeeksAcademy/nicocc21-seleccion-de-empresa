@@ -14,7 +14,14 @@ from services.api.database import get_user_by_id
 
 # --- Configuración ---
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "brasaland-dev-secret-change-in-production")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY no está definida. "
+        "Configúrala en el archivo .env o en la variable de entorno. "
+        "Ejemplo: JWT_SECRET_KEY=clave_segura_aqui"
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
 RESET_TOKEN_EXPIRE_MINUTES = int(os.getenv("RESET_TOKEN_EXPIRE_MINUTES", "15"))

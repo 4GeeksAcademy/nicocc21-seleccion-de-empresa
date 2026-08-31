@@ -169,3 +169,38 @@ class ProfileOut(BaseModel):
     full_name: str
     phone: str | None = None
     address: str | None = None
+
+
+# --- AUTH-03: Password Reset / Change ---
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Solicitud de restablecimiento de contraseña."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    email: str = Field(min_length=5)
+
+
+class ResetPasswordRequest(BaseModel):
+    """Restablecimiento de contraseña con token."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    token: str = Field(min_length=1)
+    new_password: str = Field(min_length=6)
+
+
+class ChangePasswordRequest(BaseModel):
+    """Cambio de contraseña (usuario autenticado)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=6)
+
+
+class MessageResponse(BaseModel):
+    """Respuesta simple con mensaje."""
+
+    message: str

@@ -9,7 +9,7 @@
 import { usePathname } from "next/navigation";
 import AuthGuard from "../components/auth/auth-guard";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

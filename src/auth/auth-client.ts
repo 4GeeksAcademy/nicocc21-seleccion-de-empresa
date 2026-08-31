@@ -7,7 +7,7 @@
  * Las apps Next.js importan desde @brasaland/auth-client (path alias).
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8001";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
 const TOKEN_KEY = "brasaland_token";
 
 // ─── Token management ───────────────────────────────────────────
@@ -183,6 +183,88 @@ export function logout(): void {
   if (typeof window !== "undefined") {
     window.location.href = "/login";
   }
+}
+
+// ─── AUTH-03: Forgot / Reset / Change Password ─────────────────
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export async function forgotPassword(
+  payload: ForgotPasswordPayload
+): Promise<MessageResponse> {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Error de conexión" }));
+    throw new Error(err.detail ?? "Error al solicitar restablecimiento");
+  }
+
+  return res.json();
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  new_password: string;
+}
+
+export async function resetPassword(
+  payload: ResetPasswordPayload
+): Promise<MessageResponse> {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Error de conexión" }));
+    throw new Error(err.detail ?? "Error al restablecer contraseña");
+  }
+
+  return res.json();
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
+
+export async function changePassword(
+  payload: ChangePasswordPayload
+): Promise<MessageResponse> {
+  const token = getToken();
+  if (!token) throw new Error("No hay sesión activa");
+
+  const res = await fetch(`${API_BASE}/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (res.status === 401) {
+    removeToken();
+    throw new Error("Sesión expirada");
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Error de conexión" }));
+    throw new Error(err.detail ?? "Error al cambiar contraseña");
+  }
+
+  return res.json();
 }
 
 // ─── Fetch autenticado (para llamadas protegidas a la API) ──────

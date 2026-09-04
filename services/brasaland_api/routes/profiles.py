@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from services.api.auth import get_current_user
-from services.api.database import create_profile, get_profile_by_user_id, update_profile
-from services.api.models import ProfileCreate, ProfileOut, ProfileUpdate
+from services.brasaland_api.auth import get_current_user
+from services.brasaland_api.database import create_profile, get_profile_by_user_id, update_profile
+from services.brasaland_api.models import ProfileCreate, ProfileOut, ProfileUpdate
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 

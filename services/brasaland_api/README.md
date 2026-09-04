@@ -66,7 +66,7 @@ El seeder es idempotente: no duplica proveedores ya existentes.
 ### Ejecutar API FastAPI
 
 ```bash
-python3 -m uvicorn services.api.main:app --host 0.0.0.0 --port 8001 --reload
+python3 -m uvicorn services.brasaland_api.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 Base URL: `http://localhost:8001`

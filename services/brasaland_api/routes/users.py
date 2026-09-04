@@ -4,8 +4,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from services.api.auth import get_current_user, hash_password
-from services.api.database import (
+from services.brasaland_api.auth import get_current_user, hash_password
+from services.brasaland_api.database import (
     create_profile,
     create_user,
     delete_user,
@@ -13,7 +13,7 @@ from services.api.database import (
     list_users,
     update_user,
 )
-from services.api.models import UserCreate, UserOut, UserUpdate
+from services.brasaland_api.models import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 _logger = logging.getLogger(__name__)

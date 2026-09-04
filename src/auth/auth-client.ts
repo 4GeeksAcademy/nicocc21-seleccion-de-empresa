@@ -7,7 +7,14 @@
  * Las apps Next.js importan desde @brasaland/auth-client (path alias).
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
+type RuntimeProcess = {
+  env?: {
+    NEXT_PUBLIC_API_BASE?: string;
+  };
+};
+
+const runtimeProcess = (globalThis as { process?: RuntimeProcess }).process;
+const API_BASE = runtimeProcess?.env?.NEXT_PUBLIC_API_BASE ?? "/api";
 const TOKEN_KEY = "brasaland_token";
 
 // ─── Token management ───────────────────────────────────────────

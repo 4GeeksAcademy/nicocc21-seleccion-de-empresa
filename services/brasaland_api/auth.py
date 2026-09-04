@@ -10,7 +10,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from services.api.database import get_user_by_id
+from services.brasaland_api.database import get_user_by_id
 
 # --- Configuración ---
 

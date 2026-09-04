@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from services.api.auth import (
+from services.brasaland_api.auth import (
     create_access_token,
     create_reset_token,
     decode_reset_token,
@@ -14,7 +14,7 @@ from services.api.auth import (
     hash_password,
     verify_password,
 )
-from services.api.database import (
+from services.brasaland_api.database import (
     create_profile,
     create_user,
     get_profile_by_user_id,
@@ -27,8 +27,8 @@ from services.api.database import (
     update_user_password,
     utc_now,
 )
-from services.api.email_service import send_reset_email
-from services.api.models import (
+from services.brasaland_api.email_service import send_reset_email
+from services.brasaland_api.models import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     MessageResponse,
@@ -160,7 +160,7 @@ def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
 
             # Calcular expires_at (sumando los minutos de expiración)
             from datetime import datetime, timedelta, timezone
-            from services.api.auth import RESET_TOKEN_EXPIRE_MINUTES
+            from services.brasaland_api.auth import RESET_TOKEN_EXPIRE_MINUTES
             expires_at = (
                 datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
             ).isoformat()

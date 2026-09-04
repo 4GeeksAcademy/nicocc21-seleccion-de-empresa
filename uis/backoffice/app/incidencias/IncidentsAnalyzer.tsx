@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type Summary = {
   total_processed: number;
@@ -56,11 +56,11 @@ export default function IncidentsAnalyzer() {
       }
 
       setSummary(payload as Summary);
-    } catch {
+    } catch (err: unknown) {
       setSummary(null);
-      setError(
-        "No se pudo conectar con la API de incidencias. Verifica que el backend este en ejecucion."
-      );
+      const message =
+        err instanceof Error ? err.message : "No se pudo conectar con la API de incidencias. Verifica que el backend este en ejecucion.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -83,8 +83,10 @@ export default function IncidentsAnalyzer() {
       anchor.download = "incidents-results.csv";
       anchor.click();
       window.URL.revokeObjectURL(url);
-    } catch {
-      setError("No se pudo descargar el CSV de resultados.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo descargar el CSV de resultados.";
+      setError(message);
     }
   };
 

@@ -3,10 +3,15 @@ import { NextResponse } from "next/server";
 const BACKEND_BASE =
   process.env.INCIDENTS_BACKEND_BASE_URL ?? "http://127.0.0.1:8000";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const auth = request.headers.get("Authorization");
+    const headers: Record<string, string> = {};
+    if (auth) headers["Authorization"] = auth;
+
     const response = await fetch(`${BACKEND_BASE}/api/incidents/results/export`, {
       method: "GET",
+      headers,
       cache: "no-store",
     });
 

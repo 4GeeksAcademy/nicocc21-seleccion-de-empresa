@@ -116,6 +116,9 @@ export default function SuppliersDirectory({
   const [form, setForm] = useState<CreateSupplierForm>(initialFormState);
   const [creating, setCreating] = useState(false);
 
+  // Estado inline para editar tarifa (reemplaza window.prompt)
+  const [editingRate, setEditingRate] = useState<{ supplier: Supplier; value: string } | null>(null);
+
   const activeCount = useMemo(
     () => suppliers.filter((supplier) => supplier.status === "active").length,
     [suppliers]
@@ -147,9 +150,11 @@ export default function SuppliersDirectory({
       }
 
       setSuppliers(payload as Supplier[]);
-    } catch {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo conectar con la API de proveedores.";
       setSuppliers([]);
-      setError("No se pudo conectar con la API de proveedores.");
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -221,8 +226,10 @@ export default function SuppliersDirectory({
       });
       setSuccess("Proveedor creado correctamente.");
       await loadSuppliers();
-    } catch {
-      setError("No se pudo conectar con la API de proveedores.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo conectar con la API de proveedores.";
+      setError(message);
     } finally {
       setCreating(false);
     }
@@ -231,22 +238,24 @@ export default function SuppliersDirectory({
   async function onUpdateRate(supplier: Supplier) {
     setError(null);
     setSuccess(null);
+    setEditingRate({ supplier, value: String(supplier.rate_per_unit) });
+  }
 
-    const input = window.prompt(
-      `Nueva tarifa para ${supplier.name} (${supplier.currency}):`,
-      String(supplier.rate_per_unit)
-    );
+  async function onSubmitRate() {
+    if (!editingRate) return;
 
-    if (input === null) return;
+    setError(null);
+    setSuccess(null);
 
-    const parsed = Number(input);
+    const parsed = Number(editingRate.value);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setError("La tarifa debe ser un numero mayor a 0.");
       return;
     }
 
+    setCreating(true);
     try {
-      const response = await fetch(`/api/suppliers/${supplier.id}/rate`, {
+      const response = await fetch(`/api/suppliers/${editingRate.supplier.id}/rate`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -262,8 +271,13 @@ export default function SuppliersDirectory({
 
       setSuccess("Tarifa actualizada.");
       await loadSuppliers();
-    } catch {
-      setError("No se pudo conectar con la API de proveedores.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo conectar con la API de proveedores.";
+      setError(message);
+    } finally {
+      setCreating(false);
+      setEditingRate(null);
     }
   }
 
@@ -291,8 +305,10 @@ export default function SuppliersDirectory({
 
       setSuccess("Estado actualizado.");
       await loadSuppliers();
-    } catch {
-      setError("No se pudo conectar con la API de proveedores.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo conectar con la API de proveedores.";
+      setError(message);
     }
   }
 
@@ -318,8 +334,10 @@ export default function SuppliersDirectory({
 
       setSuccess(payload.message ?? "Proveedor eliminado.");
       await loadSuppliers();
-    } catch {
-      setError("No se pudo conectar con la API de proveedores.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo conectar con la API de proveedores.";
+      setError(message);
     }
   }
 
@@ -513,6 +531,44 @@ export default function SuppliersDirectory({
       {success ? (
         <div className="rounded-lg border border-emerald-500/60 bg-emerald-950/60 px-4 py-3 text-sm text-emerald-200">
           {success}
+        </div>
+      ) : null}
+
+      {editingRate ? (
+        <div className="rounded-xl border border-amber-500/60 bg-amber-950/60 p-4">
+          <p className="mb-2 text-sm font-bold text-amber-200">
+            Nueva tarifa para {editingRate.supplier.name} ({editingRate.supplier.currency})
+          </p>
+          <div className="flex items-center gap-3">
+            <input
+              autoFocus
+              type="number"
+              min="0.0000001"
+              step="0.01"
+              value={editingRate.value}
+              onChange={(e) => setEditingRate((prev) => prev ? { ...prev, value: e.target.value } : null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void onSubmitRate();
+                if (e.key === "Escape") setEditingRate(null);
+              }}
+              className="w-48 rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
+            />
+            <button
+              type="button"
+              onClick={() => void onSubmitRate()}
+              disabled={creating}
+              className="rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-amber-500 disabled:opacity-60"
+            >
+              {creating ? "Guardando..." : "Guardar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingRate(null)}
+              className="rounded-full border border-stone-500 px-4 py-2 text-sm font-bold text-stone-200 transition hover:bg-stone-800"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       ) : null}
 

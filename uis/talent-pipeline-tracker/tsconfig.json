@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@brasaland/auth-client": ["../../src/auth/auth-client"]
     }
   },
   "include": [

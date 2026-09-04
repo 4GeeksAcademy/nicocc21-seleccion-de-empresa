@@ -81,13 +81,16 @@ export default function CandidateDetail({ candidate: initialCandidate }: Candida
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (!response.ok) throw new Error("Error al actualizar estado");
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Error al actualizar estado");
+      }
 
       const updated = await response.json();
       setCandidate((prev) => ({ ...prev, ...updated }));
       setUpdateMessage("Estado actualizado correctamente");
-    } catch {
-      setUpdateMessage("Error al actualizar el estado");
+    } catch (err: unknown) {
+      setUpdateMessage(err instanceof Error ? err.message : "Error al actualizar el estado");
     } finally {
       setIsUpdating(false);
     }
@@ -104,13 +107,16 @@ export default function CandidateDetail({ candidate: initialCandidate }: Candida
         body: JSON.stringify({ stage: newStage }),
       });
 
-      if (!response.ok) throw new Error("Error al actualizar etapa");
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Error al actualizar etapa");
+      }
 
       const updated = await response.json();
       setCandidate((prev) => ({ ...prev, ...updated }));
       setUpdateMessage("Etapa actualizada correctamente");
-    } catch {
-      setUpdateMessage("Error al actualizar la etapa");
+    } catch (err: unknown) {
+      setUpdateMessage(err instanceof Error ? err.message : "Error al actualizar la etapa");
     } finally {
       setIsUpdating(false);
     }
@@ -128,14 +134,17 @@ export default function CandidateDetail({ candidate: initialCandidate }: Candida
         body: JSON.stringify({ content: newNote }),
       });
 
-      if (!response.ok) throw new Error("Error al agregar nota");
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Error al agregar nota");
+      }
 
       const note: Note = await response.json();
       setNotes((prev) => [...prev, note]);
       setNewNote("");
       setCandidate((prev) => ({ ...prev, notes_count: prev.notes_count + 1 }));
-    } catch {
-      setUpdateMessage("Error al agregar la nota");
+    } catch (err: unknown) {
+      setUpdateMessage(err instanceof Error ? err.message : "Error al agregar la nota");
     } finally {
       setIsAddingNote(false);
     }
@@ -147,12 +156,15 @@ export default function CandidateDetail({ candidate: initialCandidate }: Candida
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error("Error al eliminar nota");
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { detail?: string };
+        throw new Error(body.detail ?? "Error al eliminar nota");
+      }
 
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
       setCandidate((prev) => ({ ...prev, notes_count: prev.notes_count - 1 }));
-    } catch {
-      setUpdateMessage("Error al eliminar la nota");
+    } catch (err: unknown) {
+      setUpdateMessage(err instanceof Error ? err.message : "Error al eliminar la nota");
     }
   };
 

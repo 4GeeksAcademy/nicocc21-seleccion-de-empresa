@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from services.api.auth import get_current_user, hash_password
@@ -14,6 +16,7 @@ from services.api.database import (
 from services.api.models import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
+_logger = logging.getLogger(__name__)
 
 
 def _require_admin(current_user: dict) -> None:
@@ -66,7 +69,7 @@ def create_user_endpoint(payload: UserCreate) -> UserOut:
                 },
             )
         except ValueError:
-            pass
+            _logger.warning("No se pudo crear perfil para usuario %s", user["id"])
 
     return _user_to_out(user)
 

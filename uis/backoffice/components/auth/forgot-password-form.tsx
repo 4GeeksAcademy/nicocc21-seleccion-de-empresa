@@ -16,8 +16,12 @@ export default function ForgotPasswordForm() {
     try {
       await forgotPassword({ email });
       setSent(true);
-    } catch {
-      setError("Error al conectar con el servidor. Intenta de nuevo.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Error al conectar con el servidor. Intenta de nuevo."
+      );
     } finally {
       setLoading(false);
     }

@@ -24,19 +24,9 @@ export default function RegisterForm() {
       setToken(data.access_token);
       router.push("/");
     } catch (err: unknown) {
-      if (err instanceof Response) {
-        const body = await err.json().catch(() => ({ detail: "Error de conexión" }));
-        if (body.detail && Array.isArray(body.detail)) {
-          const fieldErrors: Record<string, string> = {};
-          for (const e of body.detail) {
-            fieldErrors[e.loc?.join(".") ?? "form"] = e.msg;
-          }
-          setErrors(fieldErrors);
-        } else {
-          setErrors({ form: body.detail ?? "Error al registrarse" });
-        }
-      } else if (err instanceof Error) {
-        setErrors({ form: err.message });
+      if (err instanceof Error) {
+        const message = err.message;
+        setErrors({ form: message || "Error al registrarse" });
       } else {
         setErrors({ form: "Error al registrarse" });
       }

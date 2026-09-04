@@ -20,14 +20,8 @@ export default function LoginForm() {
       setToken(data.access_token);
       router.push("/");
     } catch (err: unknown) {
-      if (err instanceof Response) {
-        const body = await err.json().catch(() => ({ detail: "Error de conexión" }));
-        setError(body.detail ?? "Credenciales inválidas");
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Error al iniciar sesión");
-      }
+      const message = err instanceof Error ? err.message : "Error al iniciar sesión";
+      setError(message || "Credenciales inválidas");
     } finally {
       setLoading(false);
     }

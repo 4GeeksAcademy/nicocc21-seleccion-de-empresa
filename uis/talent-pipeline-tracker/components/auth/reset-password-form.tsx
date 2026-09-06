@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { resetPassword } from "../../../src/auth/auth-client";
+import { resetPassword } from "@brasaland/auth-client";
 
 export default function ResetPasswordForm() {
   const router = useRouter();

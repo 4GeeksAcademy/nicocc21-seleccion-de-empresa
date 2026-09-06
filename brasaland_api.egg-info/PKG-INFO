@@ -11,3 +11,4 @@ Requires-Dist: python-jose[cryptography]<4.0.0,>=3.3.0
 Requires-Dist: passlib[bcrypt]<2.0.0,>=1.7.4
 Requires-Dist: bcrypt<5.0.0,>=4.0.0
 Requires-Dist: python-multipart<1.0.0,>=0.0.9
+Requires-Dist: python-dotenv<2.0.0,>=1.0.0

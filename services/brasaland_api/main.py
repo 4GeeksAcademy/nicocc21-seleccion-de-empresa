@@ -13,8 +13,10 @@ if _env_path.exists():
     load_dotenv(_env_path)
 
 from services.brasaland_api.incidents_seed import run_incidents_seed
+from services.brasaland_api.inventory_seed import run_inventory_seed
 from services.brasaland_api.routes.auth import router as auth_router
 from services.brasaland_api.routes.incidents import router as incidents_router
+from services.brasaland_api.routes.inventory import router as inventory_router
 from services.brasaland_api.routes.profiles import router as profiles_router
 from services.brasaland_api.routes.suppliers import router as suppliers_router
 from services.brasaland_api.routes.users import router as users_router
@@ -30,6 +32,7 @@ async def lifespan(_: FastAPI):
     try:
         run_seed(verbose=False)
         run_incidents_seed(verbose=False)
+        run_inventory_seed(verbose=False)
     except Exception:
         _logger.exception("Error al ejecutar seed durante el inicio")
     yield
@@ -61,3 +64,4 @@ app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
+app.include_router(inventory_router)

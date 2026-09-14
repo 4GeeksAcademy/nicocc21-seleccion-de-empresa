@@ -40,8 +40,11 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Brasaland API",
-    description="Brasaland — API de proveedores e incidencias con FastAPI + TinyDB + Pydantic",
-    version="0.2.0",
+    description=(
+        "API de autenticación, proveedores e incidencias con TinyDB, "
+        "e inventario con SQLModel y Supabase PostgreSQL"
+    ),
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -56,7 +59,7 @@ app.add_middleware(
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"service": "suppliers-api", "status": "ok"}
+    return {"service": "brasaland-api", "status": "ok"}
 
 
 app.include_router(auth_router)

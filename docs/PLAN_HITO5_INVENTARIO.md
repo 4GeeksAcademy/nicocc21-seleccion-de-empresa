@@ -16,11 +16,12 @@
 
 ## ✅ ESTADO ACTUAL (Refinado a nivel academia)
 
-Todo implementado, probado end-to-end y refinado:
+Implementado y cubierto con pruebas unitarias. La validación end-to-end contra
+Supabase requiere una `DATABASE_URL` válida en el entorno de ejecución.
 
 | Componente | Estado |
 |-----------|--------|
-| Conexión Supabase (PostgreSQL 17.6) | ✅ |
+| Conexión Supabase (PostgreSQL) | ✅ implementada; pendiente validación con credenciales del entorno |
 | Modelos ORM (`inventory_models.py`) | ✅ con campos de negocio |
 | Engine SQLModel + `get_db` | ✅ doble conexión (TinyDB + Supabase) |
 | `SQLModel.metadata.create_all` al inicio | ✅ vía `create_db_and_tables()` en `lifespan` |
@@ -47,8 +48,8 @@ Todo implementado, probado end-to-end y refinado:
 
 | # | Archivo | Cambio |
 |---|---------|--------|
-| 1 | `services/brasaland_api/database.py` | Añadir motor SQLModel (SQLite) + sesión + dependencia `get_db` |
-| 2 | `services/brasaland_api/models.py` | Añadir modelos SQLModel: `Ingredient`, `IngredientEntry`, `IngredientExit` |
+| 1 | `services/brasaland_api/database.py` | Añadir motor SQLModel (Supabase PostgreSQL) + sesión + dependencia `get_db` |
+| 2 | `services/brasaland_api/inventory_models.py` | Añadir modelos SQLModel: `Ingredient`, `IngredientEntry`, `IngredientExit` |
 | 3 | `services/brasaland_api/seed.py` | Añadir seed de datos de inventario (ingredients, entries, exits) |
 | 4 | `services/brasaland_api/main.py` | Importar y registrar `inventory_router` |
 | 5 | `pyproject.toml` | Añadir `sqlmodel` a dependencias |
@@ -96,7 +97,7 @@ SUM(IngredientEntry.quantity) - SUM(IngredientExit.quantity)
 | `id` | `int` (PK) | Autoincremental |
 | `ingredient_id` | `int` (FK → Ingredient) | |
 | `quantity` | `float` | Cantidad consumida/mermada |
-| `reason` | `str` | "consumption" o "waste" |
+| `reason` | `str` | "consumo" o "merma" |
 | `location_id` | `int` | 1–14 (no FK) |
 | `created_at` | `datetime` | Auto |
 | `user_uuid` | `str` | UUID de TinyDB |
@@ -126,9 +127,11 @@ Todos los endpoints bajo prefijo `/inventory`. Router ubicado en:
 Archivo: `services/brasaland_api/schemas.py`
 
 **Request schemas:**
-- `IngredientCreate` — name, sku, unit, category, country
-- `IngredientEntryCreate` — ingredient_id, quantity, supplier_name, location_id, user_uuid
-- `IngredientExitCreate` — ingredient_id, quantity, reason ("consumption"|"waste"), location_id, user_uuid
+- `IngredientCreate` — datos generales, stock mínimo, caducidad y rotación
+- `IngredientEntryCreate` — ingredient_id, quantity, supplier_name, location_id
+- `IngredientExitCreate` — ingredient_id, quantity, reason ("consumo"|"merma"), location_id
+
+`user_uuid` no se recibe en el body: se extrae del JWT en los endpoints de escritura.
 
 **Response schemas:**
 - `IngredientOut` — id, name, sku, unit, category, country, current_stock (float)
@@ -162,7 +165,7 @@ if stock_actual - quantity < 0:
 - Campo `country` presente en Ingredient (modelo) y en IngredientOut (schema)
 
 ### Regla 4: `reason` validado
-- Solo acepta "consumption" o "waste" — validación Pydantic con `Literal` o `Field`
+- Solo acepta "consumo" o "merma" — validación Pydantic con `Literal`
 
 ### Regla 5: Sin tabla User
 - `user_uuid` es solo un string, referencia a TinyDB. No crear modelo User en SQLModel.
@@ -198,9 +201,9 @@ if stock_actual - quantity < 0:
 
 | ingredient (sku) | quantity | reason | location_id |
 |-----------------|----------|--------|-------------|
-| BRS-BEEF-001 | 20 | consumption | 1 |
-| BRS-BEEF-001 | 5 | waste | 1 |
-| BRS-PORK-001 | 15 | consumption | 8 |
+| BRS-BEEF-001 | 20 | consumo | 1 |
+| BRS-BEEF-001 | 5 | merma | 1 |
+| BRS-PORK-001 | 15 | consumo | 8 |
 
 **Stock resultante tras seed:**
 - Falda de ternera: 50 + 30 - 20 - 5 = **55 kg**
@@ -221,7 +224,7 @@ if stock_actual - quantity < 0:
 - Añadir `DATABASE_URL=postgresql://...` al `.env`
 - Mantener intacta `JWT_SECRET_KEY` y config de TinyDB
 
-### Paso 3: Modelos SQLModel (`models.py`)
+### Paso 3: Modelos SQLModel (`inventory_models.py`)
 - Definir `Ingredient`, `IngredientEntry`, `IngredientExit` como tablas SQLModel
 - Usar `table=True` y Field(foreign_key=...)
 - No crear modelo User en SQLModel
@@ -251,14 +254,14 @@ if stock_actual - quantity < 0:
 
 ## 8. Criterios de Evaluación / Aceptación
 
-- [ ] `GET /inventory/products` devuelve lista con `current_stock` correcto
-- [ ] `POST /inventory/orders/outbound` con cantidad > stock disponible → HTTP 400
-- [ ] Mensaje de error exacto: `"Insufficient stock for ingredient '{name}'. Available: {available}, requested: {requested}."`
-- [ ] `reason` solo acepta "consumption" o "waste"
-- [ ] `country` aparece en modelo y schema de respuesta
-- [ ] Seed data presente al iniciar la app (6 ingredients, 4+ entries, 3+ exits)
-- [ ] SQLModel + TinyDB coexisten en `database.py`
-- [ ] Router bajo prefijo `/inventory`
+- [x] `GET /inventory/products` devuelve lista con `current_stock` correcto
+- [x] `POST /inventory/orders/outbound` con cantidad > stock disponible → HTTP 400
+- [x] Mensaje de error exacto: `"Insufficient stock for ingredient '{name}'. Available: {available}, requested: {requested}."`
+- [x] `reason` solo acepta "consumo" o "merma"
+- [x] `country` aparece en modelo y schema de respuesta
+- [x] Seed data presente al iniciar la app (6 ingredients, 4+ entries, 3+ exits)
+- [x] SQLModel + TinyDB coexisten en `database.py`
+- [x] Router bajo prefijo `/inventory`
 
 ---
 
@@ -275,8 +278,8 @@ if stock_actual - quantity < 0:
 
 ## 10. Notas Técnicas
 
-- **SQLite path:** `services/brasaland_api/data/inventory.db`
-- **Engine:** `sqlmodel.create_engine("sqlite:///...")`
+- **Base productiva:** Supabase PostgreSQL configurada mediante `DATABASE_URL`
+- **Base de pruebas:** SQLite en memoria, aislada de Supabase
 - **get_db:** Dependencia FastAPI que provee sesión SQLModel
 - **current_stock:** Se calcula con dos queries SUM agrupadas por ingredient_id
 - **user_uuid:** Es solo un string campo, sin validación contra TinyDB en este hito

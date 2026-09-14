@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key")
+os.environ.setdefault("DATABASE_URL", "sqlite://")
 
 from services.brasaland_api import database
 from services.brasaland_api.auth import hash_password

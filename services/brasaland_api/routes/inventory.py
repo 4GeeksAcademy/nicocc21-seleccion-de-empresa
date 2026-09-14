@@ -273,8 +273,8 @@ def create_outbound(
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Stock insuficiente para '{ingredient.name}'. "
-                f"Disponible: {available}, solicitado: {payload.quantity}."
+                f"Insufficient stock for ingredient '{ingredient.name}'. "
+                f"Available: {available}, requested: {payload.quantity}."
             ),
         )
 

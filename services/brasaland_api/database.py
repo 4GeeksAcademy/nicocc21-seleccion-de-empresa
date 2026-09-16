@@ -411,3 +411,35 @@ def get_user_password_changed_at(user_id: int) -> str | None:
         return doc.get("password_changed_at") if doc else None
     finally:
         db.close()
+
+
+# =============================================================================
+# Hito 5 — Inventario: conexión Supabase (PostgreSQL) vía SQLModel
+# =============================================================================
+# Segunda conexión de base de datos, independiente de TinyDB. TinyDB sigue
+# gestionando usuarios/autenticación; Supabase gestiona productos y órdenes.
+
+import os
+
+from sqlmodel import Session, SQLModel, create_engine
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL no está definida. "
+        "Configúrala en el archivo .env con la cadena de conexión de Supabase. "
+        "Ejemplo: DATABASE_URL=postgresql://user:password@host:6543/postgres"
+    )
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+
+def create_db_and_tables() -> None:
+    """Crea las tablas de inventario en Supabase si no existen."""
+    SQLModel.metadata.create_all(engine)
+
+
+def get_db():
+    """Dependencia FastAPI: entrega una sesión de SQLModel y la cierra al final."""
+    with Session(engine) as session:
+        yield session

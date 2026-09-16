@@ -60,6 +60,20 @@ JWT_SECRET_KEY="clave-local-de-pruebas" uv run pytest \
 	--cov-report=term-missing
 ```
 
+## Hito 5 — Gestión de inventario
+
+La suite de inventario contiene 10 pruebas unitarias aisladas de Supabase mediante
+SQLite en memoria. Verifica creación y SKU único, stock calculado, entradas,
+salidas, stock insuficiente, filtros, historial, autenticación registrada en los
+movimientos, validaciones de negocio y ausencia de una columna `current_stock`.
+
+```bash
+uv run pytest -q tests/test_inventory.py
+```
+
+La configuración de pruebas define una `DATABASE_URL` exclusiva para test. La API
+productiva continúa utilizando la conexión PostgreSQL indicada por su entorno.
+
 ## FE-019 — Utilidades del frontend
 
 La app `uis/talent-pipeline-tracker/` incluye una suite Jest independiente en [`__tests__/api.test.ts`](uis/talent-pipeline-tracker/__tests__/api.test.ts). Cubre cuatro helpers del cliente de talento, cada uno con camino feliz y modo de fallo:

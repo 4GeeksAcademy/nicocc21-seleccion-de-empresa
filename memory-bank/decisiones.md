@@ -55,3 +55,19 @@
 **Por qué:** Crear apps Next.js dentro del monorepo es una tarea recurrente (website, backoffice, portales futuros). Estandarizar cómo se hace evita inconsistencias.
 
 **Impacto:** Cada nueva app Next.js se crea siguiendo el mismo proceso verificable.
+
+## 8. Stock de inventario: agregación SQL indexada, no columna cacheada
+
+**Decisión:** El stock (`current_stock`) nunca se guarda como columna; se calcula con `SUM(entries) - SUM(exits)` vía agregación SQL, con índice (`index=True`) en `ingredient_id` de `IngredientEntry` e `IngredientExit`.
+
+**Por qué:** Feedback del tutor en el hito de inventario: recorrer todo el historial de movimientos en Python no escala. La alternativa (columna de stock cacheada) rompe la garantía de "fuente de verdad única" y agrega riesgo de desincronización.
+
+**Impacto:** `_stock_map_for_all` resuelve el stock de todos los insumos en 2 queries agregadas (sin N+1), apoyadas en el índice de `ingredient_id`. Si el volumen de movimientos crece mucho más, la siguiente escala sería una vista materializada o snapshot periódico — no una columna editable.
+
+## 9. `node_modules` fuera del control de versiones
+
+**Decisión:** Se destrackearon 208 archivos de `node_modules` que habían quedado en el índice de git desde antes de que existiera la regla en `.gitignore` raíz.
+
+**Por qué:** Feedback del tutor: un PR incluía `node_modules/.package-lock.json`. Agregar la regla al `.gitignore` no basta si el archivo ya estaba trackeado.
+
+**Impacto:** `git rm -r --cached node_modules` limpia el índice sin borrar los paquetes en disco. Los `.gitignore` de cada app en `uis/*` y el raíz ya cubren `node_modules`, así que no debería volver a colarse.

@@ -36,7 +36,7 @@ def inventory_session() -> Session:
 
 def product_payload(
     sku: str = "BRS-BEEF-TEST",
-    category: str = "comida",
+    category: str = "meat",
     country: str = "CO",
 ) -> IngredientCreate:
     return IngredientCreate(
@@ -63,7 +63,7 @@ def test_create_product_starts_with_zero_stock_and_rejects_duplicate_sku(
     product = create_product(product_payload(), inventory_session, {"id": 7})
 
     assert product.current_stock == 0
-    assert product.category == "comida"
+    assert product.category == "meat"
     assert product.country == "CO"
 
     with pytest.raises(HTTPException) as error:
@@ -113,7 +113,7 @@ def test_outbound_decreases_stock_and_rejects_insufficient_quantity(
         IngredientExitCreate(
             ingredient_id=product_id,
             quantity=5,
-            reason="consumo",
+            reason="consumption",
             location_id=1,
         ),
         inventory_session,
@@ -129,7 +129,7 @@ def test_outbound_decreases_stock_and_rejects_insufficient_quantity(
             IngredientExitCreate(
                 ingredient_id=product_id,
                 quantity=16,
-                reason="merma",
+                reason="waste",
                 location_id=1,
             ),
             inventory_session,
@@ -146,15 +146,15 @@ def test_outbound_decreases_stock_and_rejects_insufficient_quantity(
 def test_list_products_calculates_stock_and_applies_filters(
     inventory_session: Session,
 ) -> None:
-    food_id = create_test_product(inventory_session)
+    meat_id = create_test_product(inventory_session)
     create_product(
-        product_payload(sku="BRS-BEV-TEST", category="bebida", country="US"),
+        product_payload(sku="BRS-SAUCE-TEST", category="sauce", country="US"),
         inventory_session,
         {"id": 7},
     )
     create_inbound(
         IngredientEntryCreate(
-            ingredient_id=food_id,
+            ingredient_id=meat_id,
             quantity=12,
             supplier_name="Proveedor de prueba",
             location_id=1,
@@ -163,7 +163,7 @@ def test_list_products_calculates_stock_and_applies_filters(
         {"id": 7},
     )
 
-    products = list_products(inventory_session, categoria="comida", pais="CO")
+    products = list_products(inventory_session, categoria="meat", pais="CO")
 
     assert len(products) == 1
     assert products[0].sku == "BRS-BEEF-TEST"
@@ -188,7 +188,7 @@ def test_list_orders_combines_movements_in_reverse_chronological_order(
         IngredientExitCreate(
             ingredient_id=product_id,
             quantity=2,
-            reason="merma",
+            reason="waste",
             location_id=1,
         ),
         inventory_session,
@@ -211,9 +211,9 @@ def test_unknown_product_returns_not_found(inventory_session: Session) -> None:
 @pytest.mark.parametrize(
     "payload",
     [
-        {"ingredient_id": 1, "quantity": 1, "reason": "ajuste", "location_id": 1},
-        {"ingredient_id": 1, "quantity": 1, "reason": "consumo", "location_id": 15},
-        {"ingredient_id": 1, "quantity": 0, "reason": "consumo", "location_id": 1},
+        {"ingredient_id": 1, "quantity": 1, "reason": "adjustment", "location_id": 1},
+        {"ingredient_id": 1, "quantity": 1, "reason": "consumption", "location_id": 15},
+        {"ingredient_id": 1, "quantity": 0, "reason": "consumption", "location_id": 1},
     ],
 )
 def test_outbound_schema_rejects_invalid_business_values(payload: dict) -> None:

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const BACKEND_BASE =
-  process.env.INCIDENTS_BACKEND_BASE_URL ?? "http://127.0.0.1:8000";
+  process.env.INCIDENTS_ANALYZE_BACKEND_URL ?? "http://127.0.0.1:8000";
 
 export async function GET(request: Request) {
   try {

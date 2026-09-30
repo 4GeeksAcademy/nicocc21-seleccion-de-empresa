@@ -1,9 +1,8 @@
 """Datos semilla de inventario — Hito 5 (Brasaland).
 
-Categorías y razones alineadas con CONTEXT.md:
-  - CategoriaInsumo: "comida", "bebida", "empaque"
-  - Razones de salida: "consumo", "merma"
-  - Rotación: 7 días (perecederos), 15 días (bebidas)
+Categorías y razones alineadas con el contexto de Hito 5:
+    - Categorías: "meat", "produce", "sauce", "beverage", "packaging", "cleaning"
+    - Razones: "consumption", "waste"
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ INGREDIENTS_SEED = [
         "name": "Falda de ternera",
         "sku": "BRS-BEEF-001",
         "unit": "kg",
-        "category": "comida",
+        "category": "meat",
         "country": "CO",
         "stock_minimo": 20.0,
         "perecedero": True,
@@ -24,7 +23,7 @@ INGREDIENTS_SEED = [
         "name": "Costilla de cerdo",
         "sku": "BRS-PORK-001",
         "unit": "kg",
-        "category": "comida",
+        "category": "meat",
         "country": "US",
         "stock_minimo": 15.0,
         "perecedero": True,
@@ -35,7 +34,7 @@ INGREDIENTS_SEED = [
         "name": "Chimichurri",
         "sku": "BRS-SAUCE-001",
         "unit": "litro",
-        "category": "comida",
+        "category": "sauce",
         "country": "CO",
         "stock_minimo": 30.0,
         "perecedero": True,
@@ -46,7 +45,7 @@ INGREDIENTS_SEED = [
         "name": "Salsa BBQ de la casa",
         "sku": "BRS-SAUCE-002",
         "unit": "litro",
-        "category": "comida",
+        "category": "sauce",
         "country": "US",
         "stock_minimo": 25.0,
         "perecedero": True,
@@ -57,7 +56,7 @@ INGREDIENTS_SEED = [
         "name": "Yuca",
         "sku": "BRS-PROD-001",
         "unit": "kg",
-        "category": "comida",
+        "category": "produce",
         "country": "CO",
         "stock_minimo": 10.0,
         "perecedero": True,
@@ -65,15 +64,15 @@ INGREDIENTS_SEED = [
         "frecuencia_rotacion_dias": 7,
     },
     {
-        "name": "Coca-Cola 355ml",
-        "sku": "BRS-BEV-001",
+        "name": "Caja para llevar (M)",
+        "sku": "BRS-PKG-001",
         "unit": "unidad",
-        "category": "bebida",
+        "category": "packaging",
         "country": "CO",
-        "stock_minimo": 100.0,
+        "stock_minimo": 50.0,
         "perecedero": False,
-        "dias_vida_util": 180,
-        "frecuencia_rotacion_dias": 15,
+        "dias_vida_util": 365,
+        "frecuencia_rotacion_dias": 30,
     },
 ]
 
@@ -126,9 +125,9 @@ INGREDIENT_ENTRIES_SEED = [
         "user_uuid": SEED_OPS_SUPERVISOR_UUID,
     },
     {
-        "sku": "BRS-BEV-001",
+        "sku": "BRS-PKG-001",
         "quantity": 200.0,
-        "supplier_name": "Coca-Cola FEMSA",
+        "supplier_name": "Empaques Andinos S.A.S.",
         "location_id": 1,
         "user_uuid": SEED_OPS_SUPERVISOR_UUID,
     },
@@ -139,42 +138,42 @@ INGREDIENT_EXITS_SEED = [
     {
         "sku": "BRS-BEEF-001",
         "quantity": 20.0,
-        "reason": "consumo",
+        "reason": "consumption",
         "location_id": 1,
         "user_uuid": SEED_KITCHEN_STAFF_UUID,
     },
     {
         "sku": "BRS-BEEF-001",
         "quantity": 5.0,
-        "reason": "merma",
+        "reason": "waste",
         "location_id": 1,
         "user_uuid": SEED_KITCHEN_STAFF_UUID,
     },
     {
         "sku": "BRS-PORK-001",
         "quantity": 15.0,
-        "reason": "consumo",
+        "reason": "consumption",
         "location_id": 8,
         "user_uuid": SEED_KITCHEN_STAFF_UUID,
     },
     {
         "sku": "BRS-SAUCE-002",
         "quantity": 10.0,
-        "reason": "consumo",
+        "reason": "consumption",
         "location_id": 8,
         "user_uuid": SEED_KITCHEN_STAFF_UUID,
     },
     {
         "sku": "BRS-PROD-001",
         "quantity": 8.0,
-        "reason": "merma",
+        "reason": "waste",
         "location_id": 1,
         "user_uuid": SEED_KITCHEN_STAFF_UUID,
     },
     {
-        "sku": "BRS-BEV-001",
+        "sku": "BRS-PKG-001",
         "quantity": 50.0,
-        "reason": "consumo",
+        "reason": "consumption",
         "location_id": 1,
         "user_uuid": SEED_KITCHEN_STAFF_UUID,
     },

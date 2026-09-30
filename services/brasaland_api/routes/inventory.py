@@ -9,10 +9,9 @@ Seguridad:
   - El `user_uuid` se extrae automáticamente del token, no del body.
   - Endpoints de lectura (GET) son públicos (según CONTEXT.md).
 
-Dominio (alineado con CONTEXT.md y src/hito2/types.ts):
-  - Categorías: "comida", "bebida", "empaque"
-  - Razones de salida: "consumo", "merma"
-  - Rotación: 7 días (perecederos) | 15 días (bebidas/licores)
+Dominio (alineado con el contexto de Hito 5):
+    - Categorías: "meat", "produce", "sauce", "beverage", "packaging", "cleaning"
+    - Razones de salida: "consumption", "waste"
 """
 
 from __future__ import annotations
@@ -111,7 +110,7 @@ def _get_ingredient_or_404(session: Session, ingredient_id: int) -> Ingredient:
 )
 def list_products(
     session: Session = Depends(get_db),
-    categoria: Literal["comida", "bebida", "empaque"] | None = Query(
+    categoria: Literal["meat", "produce", "sauce", "beverage", "packaging", "cleaning"] | None = Query(
         default=None, description="Filtrar por categoría de insumo"
     ),
     pais: Literal["CO", "US"] | None = Query(

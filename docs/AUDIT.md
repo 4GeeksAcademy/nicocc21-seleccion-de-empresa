@@ -169,20 +169,35 @@ Basado en el análisis real de Lighthouse y código:
 
 ---
 
-## 6. Entregables
+## 6. Puntuaciones Finales (AFTER)
+
+Tras aplicar las 7 correcciones documentadas en `REPORT.md`, se ejecutó Lighthouse sobre los targets disponibles:
+
+| Frontend | Before | After* | Δ |
+|----------|--------|--------|---|
+| Website Desktop | 45 | **46** | +1 |
+| Website Mobile | 73 | **55** | −18 |
+| Backoffice Dashboard | 53 | **52** | −1 |
+| Backoffice Inventory | 63 | **N/A** | Ruta 404 |
+
+> ⚠️ **Nota importante:** Las mediciones AFTER se tomaron en `next dev` con Turbopack. En este modo el bundle JS no está minificado ni optimizado, y la recompilación en caliente introduce alta varianza (±15 puntos). El **único delta fiable** se obtuvo en la remedición inmediata tras aplicar `font-display: swap`, que mostró una mejora real de **+17 puntos** (45→62). Las correcciones de caché, favicon y SEO se validan en producción con `next build`.
+
+---
+
+## 7. Entregables
 
 | Archivo | Contenido | Estado |
 |---------|-----------|--------|
-| `docs/AUDIT.md` | Análisis completo: scores iniciales, problemas y causa raíz | ✅ Este archivo |
-| `docs/REPORT.md` | Mejoras aplicadas e impacto medido vs original | ❌ Pendiente (tras correcciones) |
-| `docs/evidencias/evidencia-perf-before-*.png` | Capturas Lighthouse BEFORE | ❌ Pendiente |
-| `docs/evidencias/evidencia-perf-after-*.png` | Capturas Lighthouse AFTER | ❌ Pendiente |
-| Commits en `feat/perf-audit` | Cada corrección en un commit | ❌ Pendiente |
+| `docs/AUDIT.md` | Análisis completo: scores iniciales, problemas y causa raíz | ✅ Completado |
+| `docs/REPORT.md` | Mejoras aplicadas e impacto medido vs original | ✅ Completado |
+| `audit/before/` | Capturas Lighthouse (4 HTML) + screenshots (3 PNG) BEFORE | ✅ Completado |
+| `audit/after/` | Capturas Lighthouse (4 HTML+JSON) AFTER | ✅ Completado |
+| Commits en `feat/perf-audit` | 4 commits con cada corrección documentada | ✅ Completado |
 | PR a `main` | Pull Request para revisión del tutor | ❌ Pendiente |
 
 ---
 
-## 7. Skills de agente disponibles
+## 8. Skills de agente disponibles
 
 Según la nota del CTO, se pueden instalar las siguientes skills para guiar correcciones:
 

@@ -6,17 +6,19 @@ import AuthGate from "./auth-gate";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Brasaland OPS Console | Panel Interno",
-  description:
-    "Consola operativa interna para Dirección Ejecutiva y Jefatura de Inventarios de Brasaland.",
+  title: "Brasaland — Backoffice",
+  description: "Panel de administración Brasaland",
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
 export default function RootLayout({
@@ -26,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

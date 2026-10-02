@@ -1,11 +1,14 @@
 /**
- * AuthGate — wrapper cliente para proteger rutas solo en apps internas.
- * Excluye /login y /register del chequeo de auth.
+ * AuthGate — wrapper cliente para proteger rutas.
+ *
+ * Versión compartida en packages/shared/ui/auth/.
+ * Se usa en los layouts de apps protegidas.
+ * Lee usePathname() para excluir /login y /register del chequeo de auth.
  */
 "use client";
 
 import { usePathname } from "next/navigation";
-import AuthGuard from "@brasaland/ui-auth";
+import { AuthGuard } from "./auth-guard";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 

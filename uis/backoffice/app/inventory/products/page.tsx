@@ -98,7 +98,6 @@ export default function ProductsPage() {
                 <th className="px-4 py-3 font-semibold">País</th>
                 <th className="px-4 py-3 font-semibold">Unidad</th>
                 <th className="px-4 py-3 font-semibold text-right">Stock actual</th>
-                <th className="px-4 py-3 font-semibold text-right">Stock mín.</th>
                 <th className="px-4 py-3 font-semibold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -118,9 +117,6 @@ export default function ProductsPage() {
                   <td className="px-4 py-3 text-stone-300">{item.unit}</td>
                   <td className="px-4 py-3 text-right font-bold text-stone-100">
                     {item.current_stock}
-                  </td>
-                  <td className="px-4 py-3 text-right text-stone-400">
-                    {item.stock_minimo}
                   </td>
                   <td className="px-4 py-3">
                     <span

@@ -15,14 +15,14 @@ from pydantic import BaseModel, ConfigDict, Field
 # Tipos literales alineados con CONTEXT.md y src/hito2/types.ts
 # ---------------------------------------------------------------------------
 
-# CategoriaInsumo del dominio Brasaland
-CategoriaInsumo = Literal["comida", "bebida", "empaque"]
+# Categorías de ingredientes definidas para Hito 5.
+CategoriaInsumo = Literal["meat", "produce", "sauce", "beverage", "packaging", "cleaning"]
 
 # Países donde opera Brasaland (14 locales: Colombia + Florida)
 Pais = Literal["CO", "US"]
 
-# Razones de salida de stock (consumo o merma)
-RazonSalida = Literal["consumo", "merma"]
+# Razones de salida de stock (consumo o merma).
+RazonSalida = Literal["consumption", "waste"]
 
 # Locales: 1-14
 LocalId = Field(ge=1, le=14)

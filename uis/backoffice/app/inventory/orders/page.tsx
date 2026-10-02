@@ -16,8 +16,8 @@ export default function OrdersHistoryPage() {
     try {
       const data = await fetchOrders();
       setOrders(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "No se pudieron cargar las órdenes.");
+    } catch {
+      setError("No se pudieron cargar las órdenes.");
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export default function OrdersHistoryPage() {
                   <td className="px-4 py-3 text-stone-400">
                     {order.type === "inbound"
                       ? order.supplier_name ?? "—"
-                      : order.reason === "consumption" || order.reason === "consumo"
+                      : order.reason === "consumption"
                         ? "Consumo"
                         : "Merma"}
                   </td>

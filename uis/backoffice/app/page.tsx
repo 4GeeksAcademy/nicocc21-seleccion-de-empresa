@@ -73,8 +73,14 @@ export default function BackofficePage() {
           </div>
           <nav className="mt-6 flex flex-wrap gap-3 text-sm">
             <a
-              href="/suppliers"
+              href="/inventory/products"
               className="rounded-full border border-emerald-300/60 bg-emerald-300/10 px-4 py-2 font-bold text-emerald-200 transition hover:bg-emerald-300/20"
+            >
+              Ir al panel de inventario
+            </a>
+            <a
+              href="/suppliers"
+              className="rounded-full border border-stone-500 bg-stone-800 px-4 py-2 font-bold text-stone-200 transition hover:bg-stone-700"
             >
               Ir al directorio de proveedores
             </a>
@@ -86,7 +92,7 @@ export default function BackofficePage() {
             </a>
             <a
               href="/incidencias"
-              className="rounded-full border border-amber-300/60 bg-amber-300/10 px-4 py-2 font-bold text-amber-200 transition hover:bg-amber-300/20"
+              className="rounded-full border border-stone-500 bg-stone-800 px-4 py-2 font-bold text-stone-200 transition hover:bg-stone-700"
             >
               Ir al analizador de incidencias
             </a>

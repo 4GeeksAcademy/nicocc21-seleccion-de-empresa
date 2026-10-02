@@ -13,7 +13,7 @@ export default function OutboundOrderPage() {
   const [ingredientId, setIngredientId] = useState("");
   const [currentStock, setCurrentStock] = useState<number | null>(null);
   const [quantity, setQuantity] = useState("");
-  const [reason, setReason] = useState<"consumo" | "merma">("consumo");
+  const [reason, setReason] = useState<"consumption" | "waste">("consumption");
   const [locationId, setLocationId] = useState("1");
 
   const [submitting, setSubmitting] = useState(false);
@@ -181,11 +181,11 @@ export default function OutboundOrderPage() {
           <span className="mb-1 block text-stone-300">Motivo</span>
           <select
             value={reason}
-            onChange={(e) => setReason(e.target.value as "consumo" | "merma")}
+            onChange={(e) => setReason(e.target.value as "consumption" | "waste")}
             className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
           >
-            <option value="consumo">Consumo</option>
-            <option value="merma">Merma</option>
+            <option value="consumption">Consumo</option>
+            <option value="waste">Merma</option>
           </select>
         </label>
 

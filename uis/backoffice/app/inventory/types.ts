@@ -1,8 +1,14 @@
-/** Tipo de categoría de ingrediente, alineado con CONTEXT.md y backend. */
-export type CategoriaInsumo = "comida" | "bebida" | "empaque";
+/** Tipo de categoría de ingrediente, alineado con el contexto de Hito 5. */
+export type CategoriaInsumo =
+  | "meat"
+  | "produce"
+  | "sauce"
+  | "beverage"
+  | "packaging"
+  | "cleaning";
 
-/** Razón de salida de stock, alineado con CONTEXT.md y backend. */
-export type RazonSalida = "consumo" | "merma";
+/** Razón de salida de stock. */
+export type RazonSalida = "consumption" | "waste";
 
 /** País de origen del ingrediente. */
 export type Pais = "CO" | "US";

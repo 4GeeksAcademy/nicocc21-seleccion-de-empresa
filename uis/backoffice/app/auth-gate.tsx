@@ -7,7 +7,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import AuthGuard from "../components/auth/auth-guard";
+import AuthGuard from "@brasaland/ui-auth";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 

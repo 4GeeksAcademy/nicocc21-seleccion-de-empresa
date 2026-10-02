@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: "Brasaland | Sabor a la brasa en 14 sedes",
   description:
     "Brasaland — cadena de restaurantes de carnes a la brasa con 14 sedes en Colombia y Estados Unidos.",
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
 export default function RootLayout({

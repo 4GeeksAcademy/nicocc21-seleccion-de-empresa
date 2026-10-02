@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Brasaland OPS Console | Panel Interno",
-  description:
-    "Consola operativa interna para Dirección Ejecutiva y Jefatura de Inventarios de Brasaland.",
+  title: "Brasaland — Backoffice",
+  description: "Panel de administración Brasaland",
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
 export default function RootLayout({

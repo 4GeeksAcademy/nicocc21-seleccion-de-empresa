@@ -16,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Brasaland — Pipeline de Selección",
-  description: "Herramienta interna de People & Talent para gestionar candidaturas",
+  title: "Brasaland — Talent Pipeline",
+  description: "Seguimiento de candidatos Brasaland",
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
 export default function RootLayout({

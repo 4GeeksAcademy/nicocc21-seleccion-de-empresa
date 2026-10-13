@@ -37,23 +37,11 @@ from services.brasaland_api.models import (
     UserCreate,
     UserMeOut,
     UserMeProfile,
-    UserOut,
     UserRegisteredOut,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 _logger = logging.getLogger(__name__)
-
-
-def _user_to_out(user: dict) -> UserOut:
-    """Convierte un dict de usuario a UserOut."""
-    return UserOut(
-        id=user["id"],
-        email=user["email"],
-        is_active=user.get("is_active", True),
-        role=user.get("role", "user"),
-        created_at=user.get("created_at", ""),
-    )
 
 
 def _user_to_registered_out(user: dict) -> UserRegisteredOut:

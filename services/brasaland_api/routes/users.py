@@ -14,6 +14,7 @@ from services.brasaland_api.database import (
     update_user,
 )
 from services.brasaland_api.models import (
+    MessageResponse,
     UserCreate,
     UserOut,
     UserRegisteredOut,
@@ -165,11 +166,11 @@ def put_user(
     return _user_to_out(updated)
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{user_id}", response_model=MessageResponse, status_code=status.HTTP_200_OK)
 def delete_user_endpoint(
     user_id: int,
     current_user: dict = Depends(get_current_user),
-) -> dict[str, str]:
+) -> MessageResponse:
     """Eliminar un usuario y su perfil vinculado (protegida).
 
     Solo el propio usuario o un admin pueden eliminar.
@@ -189,4 +190,4 @@ def delete_user_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado",
         )
-    return {"message": "Usuario eliminado"}
+    return MessageResponse(message="Usuario eliminado")

@@ -72,6 +72,29 @@ class IngredientOut(BaseModel):
     current_stock: float
 
 # ---------------------------------------------------------------------------
+# Movimientos de inventario — base compartida
+# ---------------------------------------------------------------------------
+
+
+class InventoryMovementBase(BaseModel):
+    """Campos comunes de cualquier movimiento de inventario (entrada o salida).
+
+    Existe para que la unión `list[IngredientEntryOut | IngredientExitOut]`
+    de GET /inventory/orders comparta una proyección explícita y el campo
+    `type` discrimine cada variante sin anidar el objeto `Ingredient`.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ingredient_id: int
+    ingredient_name: str = Field(description="Nombre del insumo (join)")
+    quantity: float
+    location_id: int
+    created_at: datetime
+    user_uuid: str = Field(description="UUID del usuario que registró (del JWT)")
+
+# ---------------------------------------------------------------------------
 # IngredientEntry — orden de entrada (recibo de proveedor)
 # ---------------------------------------------------------------------------
 
@@ -88,19 +111,10 @@ class IngredientEntryCreate(BaseModel):
     # user_uuid se extrae del JWT automáticamente — no se pide en el body
 
 
-class IngredientEntryOut(BaseModel):
+class IngredientEntryOut(InventoryMovementBase):
     """Respuesta de una entrada de inventario."""
 
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    ingredient_id: int
-    ingredient_name: str = Field(description="Nombre del insumo (join)")
-    quantity: float
     supplier_name: str
-    location_id: int
-    created_at: datetime
-    user_uuid: str = Field(description="UUID del usuario que registró (del JWT)")
     type: Literal["inbound"] = "inbound"
 
 
@@ -121,17 +135,8 @@ class IngredientExitCreate(BaseModel):
     # user_uuid se extrae del JWT automáticamente
 
 
-class IngredientExitOut(BaseModel):
+class IngredientExitOut(InventoryMovementBase):
     """Respuesta de una salida de inventario."""
 
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    ingredient_id: int
-    ingredient_name: str
-    quantity: float
     reason: str
-    location_id: int
-    created_at: datetime
-    user_uuid: str
     type: Literal["outbound"] = "outbound"

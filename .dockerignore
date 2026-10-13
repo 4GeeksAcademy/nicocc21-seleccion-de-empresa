@@ -1,0 +1,33 @@
+# .dockerignore (raíz monorepo) — Brasaland
+# Limita el CONTEXTO DE BUILD que se envía al daemon de Docker.
+
+# Dependencias y builds
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Git y control de versiones
+.git/
+.gitignore
+.gitattributes
+
+# Entornos de trabajo
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Datos generados / evidencias (no necesarios en build)
+docs/evidencias/

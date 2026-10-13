@@ -63,10 +63,15 @@ services:
     container_name: brasaland-backoffice
     ports:
       - "3001:3001"
+    # NOTA: el backoffice usa imports relativos que escapan de uis/backoffice/
+    # hacia src/ y packages/ (ej. ../../../../src/auth/auth-client, alias @brasaland/*).
+    # Turbopack solo los resuelve si todo vive bajo un único árbol montado,
+    # por eso se monta ./:/app/. Para limitar qué se expone se usa un
+    # .dockerignore a nivel raíz (ver .dockerignore).
+    working_dir: /app/uis/backoffice
     volumes:
       - ./:/app/
       - /app/uis/backoffice/node_modules/
-    working_dir: /app/uis/backoffice
     env_file: .env
     depends_on:
       - backend

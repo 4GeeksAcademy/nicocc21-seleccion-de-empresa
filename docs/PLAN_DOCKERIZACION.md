@@ -100,7 +100,7 @@ brasaland/
 |----------|-------------|-----------|
 | backend | `./services/brasaland_api/:/app/services/brasaland_api/` | Recarga con `--reload` de uvicorn |
 | website | `./uis/website/:/app/` | Next.js dev server hot-reload |
-| backoffice | `./uis/backoffice/:/app/` | Next.js dev server hot-reload |
+| backoffice | `./:/app/` | Hot-reload. Monta el monorepo porque los imports relativos del backoffice escapan de `uis/backoffice/` hacia `src/` y `packages/`; Turbopack solo los resuelve bajo un único árbol montado. El `.dockerignore` raíz limita el contexto de build. |
 | postgres | `pgdata:/var/lib/postgresql/data` | Persistencia de BD |
 
 ---
@@ -300,15 +300,20 @@ services:
   # ─── Frontend: Backoffice (panel admin) ────────────────
   backoffice:
     build:
-      context: ./uis
+      context: ./uis/backoffice
       dockerfile: Dockerfile
     container_name: brasaland-backoffice
     command: sh -c "npm install && npm run dev -- -p 3001"
     ports:
       - "3001:3001"
     volumes:
-      - ./uis/backoffice/:/app/
-      - /app/node_modules/
+      # Monta el monorepo (./:/app/) porque el backoffice importa módulos que
+      # escapan de uis/backoffice/ hacia src/ y packages/ (ej. ../../../../src/...,
+      # @brasaland/*). Turbopack solo los resuelve bajo un único árbol montado.
+      # Para limitar la exposición se usa el .dockerignore raíz.
+      - ./:/app/
+      - /app/uis/backoffice/node_modules/
+    working_dir: /app/uis/backoffice
     env_file: .env
     depends_on:
       - backend
@@ -322,6 +327,35 @@ networks:
   brasaland-net:
     driver: bridge
 ```
+
+### 3.8 `.dockerignore` (raíz del monorepo) — Limitar el contexto de build
+
+El backoffice monta `./:/app/` en runtime porque sus imports relativos escapan de `uis/backoffice/` hacia `src/` y `packages/`, y Turbopack solo los resuelve bajo un único árbol montado. Para limitar qué se envía al daemon de Docker durante el **build**, se añade un `.dockerignore` a nivel raíz:
+
+```
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+docs/evidencias/
+```
+
+> **Nota**: los bind mounts de `docker-compose` no respetan `.dockerignore` en runtime. Este archivo reduce el contexto de build (imágenes más ligeras y rápidas) y evita filtrar secretos/caches al daemon. La exposición en runtime del backoffice se mantiene porque así lo exige la resolución de módulos de Turbopack.
 
 ---
 

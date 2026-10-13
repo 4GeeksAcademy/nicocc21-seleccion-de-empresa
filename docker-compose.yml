@@ -1,0 +1,81 @@
+# docker-compose.yml — Entorno de desarrollo Brasaland
+# Ejecutar: docker compose up --build
+services:
+
+  # ─── PostgreSQL (Inventario Hito 5) ────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: brasaland-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-brasaland}
+      POSTGRES_USER: ${POSTGRES_USER:-brasaland}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-brasaland_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-brasaland} -d ${POSTGRES_DB:-brasaland}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - brasaland-net
+
+  # ─── Backend Python (FastAPI + WSGI) ───────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+    container_name: brasaland-backend
+    ports:
+      - "8000:8000"   # WSGI (incidencias analyze/export)
+      - "8001:8001"   # FastAPI (auth, suppliers, incidents CRUD, inventory)
+    env_file: .env
+    volumes:
+      - ./services/brasaland_api/:/app/services/brasaland_api/
+      - ./packages/:/app/packages/
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - brasaland-net
+
+  # ─── Frontend: Web pública ─────────────────────────────
+  website:
+    build:
+      context: ./uis/website
+      dockerfile: Dockerfile
+    container_name: brasaland-website
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uis/website/:/app/
+      - /app/node_modules/
+    networks:
+      - brasaland-net
+
+  # ─── Frontend: Backoffice (panel admin) ────────────────
+  backoffice:
+    build:
+      context: ./uis/backoffice
+      dockerfile: Dockerfile
+    container_name: brasaland-backoffice
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./:/app/
+      - /app/uis/backoffice/node_modules/
+    working_dir: /app/uis/backoffice
+    env_file: .env
+    depends_on:
+      - backend
+    networks:
+      - brasaland-net
+
+volumes:
+  pgdata:
+
+networks:
+  brasaland-net:
+    driver: bridge

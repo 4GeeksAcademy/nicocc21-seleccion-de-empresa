@@ -85,6 +85,12 @@ export default function BackofficePage() {
               Ir al directorio de proveedores
             </a>
             <a
+              href="/inventory/products"
+              className="rounded-full border border-cyan-300/60 bg-cyan-300/10 px-4 py-2 font-bold text-cyan-200 transition hover:bg-cyan-300/20"
+            >
+              Ir al inventario de insumos
+            </a>
+            <a
               href="/incidencias"
               className="rounded-full border border-stone-500 bg-stone-800 px-4 py-2 font-bold text-stone-200 transition hover:bg-stone-700"
             >

@@ -13,7 +13,12 @@ from services.brasaland_api.database import (
     list_users,
     update_user,
 )
-from services.brasaland_api.models import UserCreate, UserOut, UserUpdate
+from services.brasaland_api.models import (
+    UserCreate,
+    UserOut,
+    UserRegisteredOut,
+    UserUpdate,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 _logger = logging.getLogger(__name__)
@@ -39,8 +44,18 @@ def _user_to_out(user: dict) -> UserOut:
     )
 
 
-@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user_endpoint(payload: UserCreate) -> UserOut:
+def _user_to_registered_out(user: dict) -> UserRegisteredOut:
+    """Convierte un dict de usuario a UserRegisteredOut (sin email)."""
+    return UserRegisteredOut(
+        id=user["id"],
+        is_active=user.get("is_active", True),
+        role=user.get("role", "user"),
+        created_at=user.get("created_at", ""),
+    )
+
+
+@router.post("", response_model=UserRegisteredOut, status_code=status.HTTP_201_CREATED)
+def create_user_endpoint(payload: UserCreate) -> UserRegisteredOut:
     """Registrar un nuevo usuario (público — no requiere token).
 
     Crea el usuario con credenciales hasheadas y, opcionalmente,
@@ -71,7 +86,7 @@ def create_user_endpoint(payload: UserCreate) -> UserOut:
         except ValueError:
             _logger.warning("No se pudo crear perfil para usuario %s", user["id"])
 
-    return _user_to_out(user)
+    return _user_to_registered_out(user)
 
 
 @router.get("", response_model=list[UserOut])

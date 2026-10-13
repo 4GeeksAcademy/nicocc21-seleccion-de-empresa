@@ -6,11 +6,17 @@ from services.brasaland_api.models import UserCreate
 from services.brasaland_api.routes.auth import register
 
 
-def test_register_creates_user_without_exposing_password(test_database) -> None:
+def test_register_creates_user_without_exposing_password_or_email(
+    test_database,
+) -> None:
     result = register(UserCreate(email="new@example.com", password="secret123"))
 
-    assert result.email == "new@example.com"
+    # La respuesta de registro no expone credenciales ni reenvía el email:
+    # el email viaja en el body y el cliente hace login después.
     assert not hasattr(result, "password_hash")
+    assert not hasattr(result, "email")
+    assert result.id is not None
+    assert result.role == "user"
 
 
 def test_register_rejects_duplicate_email(user: dict[str, object]) -> None:

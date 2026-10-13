@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from services.brasaland_api.models import (
     Country,
     Currency,
+    MessageResponse,
     SupplierCategory,
     SupplierCreate,
     SupplierStatus,
@@ -124,3 +125,25 @@ def test_delete_supplier_translates_storage_failure_to_business_error(
         suppliers.delete_supplier_endpoint(1)
 
     assert error.value.detail == "Error al eliminar proveedor"
+
+
+def test_delete_supplier_returns_message_response_on_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(suppliers, "delete_supplier", lambda supplier_id: True)
+
+    result = suppliers.delete_supplier_endpoint(1)
+
+    assert isinstance(result, MessageResponse)
+    assert result.message == "Proveedor eliminado"
+
+
+def test_delete_supplier_returns_not_found_for_unknown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(suppliers, "delete_supplier", lambda supplier_id: False)
+
+    with pytest.raises(HTTPException) as error:
+        suppliers.delete_supplier_endpoint(999)
+
+    assert error.value.detail == "Proveedor no encontrado"

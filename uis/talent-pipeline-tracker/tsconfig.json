@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@brasaland/auth-client": ["../../src/auth/auth-client"]
+      "@brasaland/auth-client": ["../../src/auth/auth-client"],
+      "@brasaland/ui-auth": ["../../packages/shared/ui/auth/auth-guard.tsx"]
     }
   },
   "include": [

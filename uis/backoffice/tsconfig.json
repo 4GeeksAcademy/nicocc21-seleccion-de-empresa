@@ -25,7 +25,8 @@
       "@brasaland/aggregations": ["../../src/hito2/aggregations"],
       "@brasaland/inventory-alerts": ["../../src/hito2/inventory-alerts"],
       "@brasaland/sample-data": ["../../src/hito2/sample-data"],
-      "@brasaland/auth-client": ["../../src/auth/auth-client"]
+      "@brasaland/auth-client": ["../../src/auth/auth-client"],
+      "@brasaland/ui-auth": ["../../packages/shared/ui/auth/auth-guard.tsx"]
     }
   },
   "include": [

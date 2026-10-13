@@ -28,6 +28,8 @@
 2. ✅ **P1-auth** — `UserRegisteredOut` (sin email) en `POST /auth/register` y `POST /users` (flujos públicos de registro).
 3. ✅ **P2** — `DELETE /suppliers/{id}` alineado a `200` + `MessageResponse` (antes declaraba `204` con body).
 4. ✅ **P3** — refactor de `IngredientEntryOut`/`IngredientExitOut` a base común `InventoryMovementBase` (mismo JSON, menos duplicación).
+5. ✅ **P2-consistencia** — `DELETE /users/{id}` también formaliza su contrato a `MessageResponse` (antes `dict[str, str]` inline).
+6. ✅ **Tests de regresión** — nueva batería (`test_users.py`, `test_incidents.py` + ampliación de `test_suppliers.py`) que fija los contratos implementados. **Suite: 55 tests ✔.**
 
 ---
 
@@ -138,7 +140,7 @@
 | 8 | `/users` | GET | `list[UserOut]` | 🟡 Mejorable (candidato a futuro) |
 | 9 | `/users/{id}` | GET | `UserOut` | 🟢 Bien |
 | 10 | `/users/{id}` | PUT | `UserOut` | 🟢 Bien |
-| 11 | `/users/{id}` | DELETE | `dict[str, str]` (inline) | 🟢 Bien (mensaje simple) |
+| 11 | `/users/{id}` | DELETE | `MessageResponse` | ✅ Corregido (era `dict` inline) |
 
 ### 2.1 `POST /users` → 🟢 (corregido)
 - Duplica la lógica de `/auth/register` (crea usuario + perfil opcional). Es un flujo **público** de registro (no requiere token).
@@ -157,8 +159,9 @@
 ### 2.4 `PUT /users/{id}` → 🟢
 - Entrada `UserUpdate` (solo `email`, `role`; ambos opcionales). Salida `UserOut`. Correcto, el contrato de escritura está ajustado (no acepta password).
 
-### 2.5 `DELETE /users/{id}` → 🟢
-- Responde `200` con `{"message": "Usuario eliminado"}`. Schema inline `dict[str, str]`. Aceptable; idealmente `MessageResponse` para formalizar, pero no filtra nada.
+### 2.5 `DELETE /users/{id}` ✅ (corregido)
+- Respondía `200` con `{"message": "Usuario eliminado"}` usando schema inline `dict[str, str]`.
+- **Cambio aplicado:** formalizado a `MessageResponse` (idéntico JSON `{"message": "Usuario eliminado"}`), consistente con el resto de la API. Se añadió test de regresión.
 
 ---
 
@@ -311,12 +314,14 @@
 | 🔴 P1 | `GET /incidents/summary` | Crear `IncidentsSummaryOut` y fijar `response_model`. | ✅ Aplicado |
 | ⚠️ P1-auth | `POST /auth/register` y `POST /users` | `UserRegisteredOut` para no reenviar email en registro. | ✅ Aplicado |
 | ⚠️ P2 | `DELETE /suppliers/{id}` | Alinear 204→200 + `MessageResponse`. | ✅ Aplicado |
+| ⚠️ P2-bis | `DELETE /users/{id}` | Formalizar a `MessageResponse`. | ✅ Aplicado |
 | 🟡 P3 | `GET /inventory/orders` | Refactor a `InventoryMovementBase` compartido. | ✅ Aplicado |
+| ➕ | Batería de regresión | Fijar los contratos nuevos en tests (`test_users.py`, `test_incidents.py`, `test_suppliers.py`). | ✅ Aplicado |
 | 🟡 P4 | `GET /users` (futuro) | `UserListItem` ligero **cuando exista consumidor**. | ⏸ Diferido (documentado, sin UI hoy) |
 | 🟡 P5 | `GET /auth/me` (futuro) | Evaluar `UserMeLite` para guard de sesión. | ⏸ Diferido (requeriría tocar TS del frontend) |
 
 **Verificación realizada:**
-- ✅ `JWT_SECRET_KEY=... uv run pytest` (equivalente local en `.venv`): **46/46 tests pasan**.
+- ✅ `pytest`: **55/55 tests pasan** (46 originales + 9 de regresión sobre los nuevos contratos de serialización).
 - ✅ Prueba funcional con `TestClient` sobre la app FastAPI real:
   - `POST /auth/register` → **201**, body `{id, is_active, role, created_at}` — **sin email ni password**.
   - `POST /users` → **201**, mismo contrato — **sin email**.

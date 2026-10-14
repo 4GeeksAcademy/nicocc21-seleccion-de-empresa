@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Brasaland telemetry events 1.0.0",
+  "description": "Contrato de diseño. Habilitar validación de formatos y aplicar las reglas semánticas de telemetry-plan.md. Todas las claves declaradas son obligatorias; null es un valor explícito, no una clave opcional.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "timestamp", "sessionId", "userId", "event_type", "schemaVersion", "requestId", "properties"],
+  "properties": {
+    "eventId": { "$ref": "#/$defs/uuid", "description": "Identificador único del evento, conservado en cada reintento." },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$", "description": "Instante del hecho en ISO 8601 UTC, terminado en Z." },
+    "sessionId": { "anyOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }], "description": "Sesión pseudónima; null si no existe. No es un token de autenticación." },
+    "userId": { "anyOf": [{ "$ref": "#/$defs/opaqueId" }, { "type": "null" }], "description": "ID interno pseudónimo obtenido de una identidad validada; null si no se identifica al usuario. Nunca email o nombre." },
+    "event_type": { "type": "string", "description": "Nombre de una de las 22 variantes permitidas." },
+    "schemaVersion": { "const": "1.0.0", "description": "Versión exacta del contrato para el event_type." },
+    "requestId": { "$ref": "#/$defs/uuid", "description": "Correlación de la operación entre frontend, proxy, backend y logs saneados." },
+    "properties": { "type": "object", "description": "Payload cerrado específico del evento, sin datos personales ni texto libre." }
+  },
+  "oneOf": [
+    { "description": "Obligatorio: recepción de mercancía confirmada.", "properties": { "event_type": { "const": "inbound_order_created" }, "properties": { "$ref": "#/$defs/inboundOrder" } } },
+    { "description": "Obligatorio: consumo de ingredientes confirmado, no merma.", "properties": { "event_type": { "const": "outbound_order_created" }, "properties": { "$ref": "#/$defs/outboundOrder" } } },
+    { "description": "Obligatorio: merma confirmada con causa explícita.", "properties": { "event_type": { "const": "stock_waste_registered" }, "properties": { "$ref": "#/$defs/stockWaste" } } },
+    { "description": "Obligatorio: stock de producto/local cruza por debajo del mínimo.", "properties": { "event_type": { "const": "stock_threshold_triggered" }, "properties": { "$ref": "#/$defs/stockThreshold" } } },
+    { "description": "Obligatorio: intento explícito de edición directa de stock rechazado.", "properties": { "event_type": { "const": "direct_stock_edit_rejected" }, "properties": { "$ref": "#/$defs/directStockEditRejected" } } },
+    { "description": "Obligatorio: variación de precio supera el umbral frente al histórico comparable.", "properties": { "event_type": { "const": "ingredient_price_variance_detected" }, "properties": { "$ref": "#/$defs/priceVariance" } } },
+    { "description": "Oportunidad identificada: orden denegada antes de persistirse.", "properties": { "event_type": { "const": "inventory_order_rejected" }, "properties": { "$ref": "#/$defs/orderRejected" } } },
+    { "description": "Oportunidad identificada: solicitud con errores de validación.", "properties": { "event_type": { "const": "validation_failed" }, "properties": { "$ref": "#/$defs/validationFailed" } } },
+    { "description": "Oportunidad identificada: credenciales aceptadas por el backend.", "properties": { "event_type": { "const": "login_succeeded" }, "properties": { "$ref": "#/$defs/loginSucceeded" } } },
+    { "description": "Oportunidad identificada: credenciales rechazadas, sin identificar el correo intentado.", "properties": { "event_type": { "const": "login_failed" }, "properties": { "$ref": "#/$defs/loginFailed" } } },
+    { "description": "Oportunidad identificada: operación denegada por permisos.", "properties": { "event_type": { "const": "authorization_denied" }, "properties": { "$ref": "#/$defs/authorizationDenied" } } },
+    { "description": "Oportunidad identificada: visita confirmada a una sección del backoffice.", "properties": { "event_type": { "const": "section_viewed" }, "properties": { "$ref": "#/$defs/sectionViewed" } } },
+    { "description": "Oportunidad identificada: primer cambio en un formulario.", "properties": { "event_type": { "const": "workflow_started" }, "properties": { "$ref": "#/$defs/workflowStarted" } } },
+    { "description": "Oportunidad identificada: operación de un flujo confirmada en backend.", "properties": { "event_type": { "const": "workflow_completed" }, "properties": { "$ref": "#/$defs/workflowCompleted" } } },
+    { "description": "Oportunidad identificada: cancelación explícita del flujo.", "properties": { "event_type": { "const": "workflow_cancelled" }, "properties": { "$ref": "#/$defs/workflowCancelled" } } },
+    { "description": "Oportunidad identificada: respuesta HTTP terminada y duración medida.", "properties": { "event_type": { "const": "api_request_completed" }, "properties": { "$ref": "#/$defs/apiRequestCompleted" } } },
+    { "description": "Oportunidad identificada: error no controlado del frontend, sin mensaje libre.", "properties": { "event_type": { "const": "frontend_error_detected" }, "properties": { "$ref": "#/$defs/frontendError" } } },
+    { "description": "Oportunidad identificada: cambio de tarifa de proveedor confirmado.", "properties": { "event_type": { "const": "supplier_rate_updated" }, "properties": { "$ref": "#/$defs/supplierRateUpdated" } } },
+    { "description": "Oportunidad identificada: cambio de estado de proveedor confirmado.", "properties": { "event_type": { "const": "supplier_status_changed" }, "properties": { "$ref": "#/$defs/supplierStatusChanged" } } },
+    { "description": "Oportunidad identificada: incidencia creada, sin datos de clientes ni descripción.", "properties": { "event_type": { "const": "incident_created" }, "properties": { "$ref": "#/$defs/incidentCreated" } } },
+    { "description": "Oportunidad identificada: transición de incidencia confirmada.", "properties": { "event_type": { "const": "incident_status_changed" }, "properties": { "$ref": "#/$defs/incidentStatusChanged" } } },
+    { "description": "Oportunidad identificada: job interno finalizado, si existe dicho proceso.", "properties": { "event_type": { "const": "background_job_completed" }, "properties": { "$ref": "#/$defs/backgroundJobCompleted" } } }
+  ],
+  "allOf": [
+    {
+      "if": { "properties": { "event_type": { "enum": ["inbound_order_created", "outbound_order_created", "stock_waste_registered", "stock_threshold_triggered", "ingredient_price_variance_detected", "login_succeeded", "workflow_completed"] } } },
+      "then": { "properties": { "userId": { "$ref": "#/$defs/opaqueId" } } }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "login_failed" } } },
+      "then": { "properties": { "userId": { "type": "null" } } }
+    }
+  ],
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid", "description": "UUID válido; la comprobación de format debe habilitarse." },
+    "opaqueId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$", "description": "ID interno opaco, no un nombre, correo o texto libre." },
+    "numericId": { "type": "string", "pattern": "^[1-9][0-9]*$", "maxLength": 20, "description": "ID interno positivo, representado como cadena decimal." },
+    "locationId": { "type": "string", "pattern": "^L(0[1-9]|1[0-4])$", "description": "Local de Brasaland L01-L14 validado contra el catálogo." },
+    "country": { "enum": ["CO", "US"], "description": "País del local, no idioma de UI ni país del ingrediente." },
+    "currency": { "enum": ["COP", "USD"], "description": "Moneda original del local/proveedor; no convertir en telemetría." },
+    "category": { "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Categoría canónica equivalente a proteína, vegetal, salsa, bebida, empaque o limpieza." },
+    "unit": { "enum": ["kg", "unit", "liter"], "description": "Unidad canónica; cambiar etiquetas equivalentes, no cantidades." },
+    "quantity": { "type": "number", "exclusiveMinimum": 0, "description": "Cantidad positiva y finita del movimiento o intento validado." },
+    "nonnegative": { "type": "number", "minimum": 0, "description": "Número finito no negativo." },
+    "money": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$", "maxLength": 24, "description": "Importe decimal no negativo con dos decimales, sin separadores de miles." },
+    "positiveMoney": { "allOf": [{ "$ref": "#/$defs/money" }, { "not": { "const": "0.00" } }], "description": "Importe decimal estrictamente positivo con dos decimales." },
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,63}$", "description": "Código estable de un registro controlado; nunca derivado de texto del usuario." },
+    "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$", "description": "Etiqueta de un registro controlado, sin texto libre." },
+    "routeTemplate": { "type": "string", "pattern": "^/[A-Za-z0-9_{}/-]*$", "maxLength": 160, "description": "Ruta parametrizada registrada, sin IDs reales, query strings o datos de usuario; /unmatched para rutas desconocidas." },
+    "codes": { "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/code" }, "description": "Códigos controlados, sin duplicados ni mensajes libres." },
+    "fields": { "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/slug" }, "description": "Nombres controlados de campos; nunca sus valores rechazados." },
+    "countryCurrencyRules": {
+      "allOf": [
+        { "if": { "required": ["country"], "properties": { "country": { "const": "CO" } } }, "then": { "properties": { "currency": { "const": "COP" } } } },
+        { "if": { "required": ["country"], "properties": { "country": { "const": "US" } } }, "then": { "properties": { "currency": { "const": "USD" } } } }
+      ]
+    },
+    "inventoryBase": {
+      "type": "object",
+      "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency"],
+      "properties": {
+        "location_id": { "$ref": "#/$defs/locationId" },
+        "country": { "$ref": "#/$defs/country" },
+        "product_id": { "$ref": "#/$defs/numericId", "description": "ID del Ingredient existente." },
+        "product_category": { "$ref": "#/$defs/category" },
+        "quantity": { "$ref": "#/$defs/quantity", "description": "Cantidad del movimiento; para umbral/precio, la del movimiento causante." },
+        "unit": { "$ref": "#/$defs/unit" },
+        "currency": { "$ref": "#/$defs/currency" }
+      },
+      "allOf": [{ "$ref": "#/$defs/countryCurrencyRules" }]
+    },
+    "inboundOrder": {
+      "type": "object", "allOf": [{ "$ref": "#/$defs/inventoryBase" }], "unevaluatedProperties": false,
+      "required": ["order_id", "supplier_id", "unit_price", "total_amount"],
+      "properties": {
+        "order_id": { "$ref": "#/$defs/numericId", "description": "ID de la entrada confirmada." },
+        "supplier_id": { "$ref": "#/$defs/numericId", "description": "ID estable del proveedor, no su nombre." },
+        "unit_price": { "$ref": "#/$defs/positiveMoney", "description": "Costo real por unidad canónica registrado en la entrada." },
+        "total_amount": { "$ref": "#/$defs/money", "description": "quantity por unit_price, redondeado a dos decimales con HALF_UP." }
+      }
+    },
+    "outboundOrder": {
+      "type": "object", "allOf": [{ "$ref": "#/$defs/inventoryBase" }], "unevaluatedProperties": false,
+      "required": ["order_id", "reason"],
+      "properties": {
+        "order_id": { "$ref": "#/$defs/numericId", "description": "ID de la salida confirmada por consumo." },
+        "reason": { "const": "consumption", "description": "Consumo en cocina, excluyendo merma." }
+      }
+    },
+    "stockWaste": {
+      "type": "object", "allOf": [{ "$ref": "#/$defs/inventoryBase" }], "unevaluatedProperties": false,
+      "required": ["order_id", "reason"],
+      "properties": {
+        "order_id": { "$ref": "#/$defs/numericId", "description": "ID de la salida confirmada por merma." },
+        "reason": { "enum": ["expired", "kitchen_error", "theft_suspected"], "description": "Causa explícita: vencimiento, error de cocina o sospecha de robo; no inferir desde waste." }
+      }
+    },
+    "stockThreshold": {
+      "type": "object", "allOf": [{ "$ref": "#/$defs/inventoryBase" }], "unevaluatedProperties": false,
+      "required": ["stock_before", "stock_after", "minimum_stock", "order_id"],
+      "properties": {
+        "stock_before": { "$ref": "#/$defs/nonnegative", "description": "Stock del producto/local antes de la salida, en unit." },
+        "stock_after": { "$ref": "#/$defs/nonnegative", "description": "Stock del producto/local después de la salida, en unit." },
+        "minimum_stock": { "$ref": "#/$defs/nonnegative", "description": "Mínimo configurado del producto/local, en unit." },
+        "order_id": { "$ref": "#/$defs/numericId", "description": "ID de la salida causante del cruce." }
+      }
+    },
+    "directStockEditRejected": {
+      "type": "object", "additionalProperties": false,
+      "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "rejection_code", "operation", "attempted_fields"],
+      "properties": {
+        "location_id": { "anyOf": [{ "$ref": "#/$defs/locationId" }, { "type": "null" }], "description": "Local validado o null si no se conoce." },
+        "country": { "anyOf": [{ "$ref": "#/$defs/country" }, { "type": "null" }], "description": "País del local validado o null." },
+        "product_id": { "anyOf": [{ "$ref": "#/$defs/numericId" }, { "type": "null" }], "description": "Producto existente identificado o null." },
+        "product_category": { "anyOf": [{ "$ref": "#/$defs/category" }, { "type": "null" }], "description": "Categoría conocida o null; no inventar producto." },
+        "quantity": { "anyOf": [{ "$ref": "#/$defs/quantity" }, { "type": "null" }], "description": "Cantidad positiva validada de movimiento o null; un stock objetivo no es quantity." },
+        "unit": { "anyOf": [{ "$ref": "#/$defs/unit" }, { "type": "null" }], "description": "Unidad validada o null." },
+        "currency": { "anyOf": [{ "$ref": "#/$defs/currency" }, { "type": "null" }], "description": "Moneda del local validado o null." },
+        "rejection_code": { "const": "DIRECT_STOCK_EDIT_FORBIDDEN", "description": "Rechazo explícito por prohibición de edición directa." },
+        "operation": { "const": "direct_stock_edit", "description": "Operación prohibida detectada por backend." },
+        "attempted_fields": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "enum": ["stock", "stockActual", "current_stock"] }, "description": "Campos de stock conocidos detectados; no copiar claves arbitrarias ni valores." }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/countryCurrencyRules" },
+        { "if": { "properties": { "location_id": { "type": "null" } } }, "then": { "properties": { "country": { "type": "null" }, "currency": { "type": "null" } } }, "else": { "properties": { "country": { "$ref": "#/$defs/country" }, "currency": { "$ref": "#/$defs/currency" } } } },
+        { "if": { "properties": { "product_id": { "type": "null" } } }, "then": { "properties": { "product_category": { "type": "null" }, "unit": { "type": "null" } } } },
+        { "if": { "properties": { "quantity": { "type": "number" } } }, "then": { "properties": { "unit": { "$ref": "#/$defs/unit" } } } }
+      ]
+    },
+    "priceVariance": {
+      "type": "object", "allOf": [{ "$ref": "#/$defs/inventoryBase" }], "unevaluatedProperties": false,
+      "required": ["order_id", "supplier_id", "unit_price", "reference_price", "variance_pct", "threshold_pct"],
+      "properties": {
+        "order_id": { "$ref": "#/$defs/numericId", "description": "ID de la entrada evaluada." },
+        "supplier_id": { "$ref": "#/$defs/numericId", "description": "ID del proveedor usado para comparar histórico." },
+        "unit_price": { "$ref": "#/$defs/positiveMoney", "description": "Precio unitario real de la entrada evaluada." },
+        "reference_price": { "$ref": "#/$defs/positiveMoney", "description": "Mediana de entradas comparables anteriores de 30 días, con al menos tres observaciones, normalizada a dos decimales HALF_UP." },
+        "variance_pct": { "type": "number", "description": "100 por (unit_price - reference_price) / reference_price; conserva signo." },
+        "threshold_pct": { "type": "number", "exclusiveMinimum": 0, "default": 10, "description": "Umbral efectivo porcentual; default no inserta valores automáticamente." }
+      }
+    },
+    "orderRejected": {
+      "type": "object", "additionalProperties": false,
+      "required": ["order_type", "rejection_code", "location_id", "product_id"],
+      "properties": {
+        "order_type": { "enum": ["inbound", "outbound"], "description": "Tipo de orden denegada." },
+        "rejection_code": { "$ref": "#/$defs/code", "description": "Motivo controlado del rechazo, sin mensaje original." },
+        "location_id": { "anyOf": [{ "$ref": "#/$defs/locationId" }, { "type": "null" }], "description": "Local validado o null." },
+        "product_id": { "anyOf": [{ "$ref": "#/$defs/numericId" }, { "type": "null" }], "description": "Producto validado o null." }
+      }
+    },
+    "validationFailed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["route_template", "field_names", "validation_codes"],
+      "properties": {
+        "route_template": { "$ref": "#/$defs/routeTemplate" },
+        "field_names": { "$ref": "#/$defs/fields" },
+        "validation_codes": { "$ref": "#/$defs/codes" }
+      }
+    },
+    "loginSucceeded": {
+      "type": "object", "additionalProperties": false,
+      "required": ["auth_method"],
+      "properties": { "auth_method": { "const": "password", "description": "Método de autenticación utilizado." } }
+    },
+    "loginFailed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["failure_code", "auth_method"],
+      "properties": {
+        "failure_code": { "const": "INVALID_CREDENTIALS", "description": "Código genérico sin distinguir usuario inexistente de contraseña incorrecta." },
+        "auth_method": { "const": "password", "description": "Método de autenticación intentado." }
+      }
+    },
+    "authorizationDenied": {
+      "type": "object", "additionalProperties": false,
+      "required": ["operation", "required_role", "denial_code"],
+      "properties": {
+        "operation": { "$ref": "#/$defs/slug", "description": "Operación controlada denegada." },
+        "required_role": { "$ref": "#/$defs/slug", "description": "Rol requerido por la política de permisos." },
+        "denial_code": { "$ref": "#/$defs/code", "description": "Código de denegación, sin texto de identidad." }
+      }
+    },
+    "sectionViewed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["section_code"],
+      "properties": { "section_code": { "$ref": "#/$defs/slug", "description": "Sección conocida; nunca ruta con parámetros de usuario." } }
+    },
+    "workflowStarted": {
+      "type": "object", "additionalProperties": false,
+      "required": ["workflow_id", "workflow_type"],
+      "properties": {
+        "workflow_id": { "$ref": "#/$defs/uuid", "description": "ID del flujo, distinto del ID de petición." },
+        "workflow_type": { "$ref": "#/$defs/slug", "description": "Tipo de formulario registrado." }
+      }
+    },
+    "workflowCompleted": {
+      "type": "object", "additionalProperties": false,
+      "required": ["workflow_id", "workflow_type", "entity_id"],
+      "properties": {
+        "workflow_id": { "$ref": "#/$defs/uuid", "description": "ID del flujo propagado al backend." },
+        "workflow_type": { "$ref": "#/$defs/slug", "description": "Tipo de flujo confirmado." },
+        "entity_id": { "$ref": "#/$defs/opaqueId", "description": "ID interno de la entidad persistida; no ID de cliente." }
+      }
+    },
+    "workflowCancelled": {
+      "type": "object", "additionalProperties": false,
+      "required": ["workflow_id", "workflow_type", "step_code"],
+      "properties": {
+        "workflow_id": { "$ref": "#/$defs/uuid", "description": "ID del flujo cancelado." },
+        "workflow_type": { "$ref": "#/$defs/slug", "description": "Tipo de flujo cancelado." },
+        "step_code": { "$ref": "#/$defs/slug", "description": "Paso controlado donde se canceló explícitamente." }
+      }
+    },
+    "apiRequestCompleted": {
+      "type": "object", "additionalProperties": false,
+      "required": ["route_template", "method", "status_code", "duration_ms", "source"],
+      "properties": {
+        "route_template": { "$ref": "#/$defs/routeTemplate" },
+        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"], "description": "Método HTTP." },
+        "status_code": { "type": "integer", "minimum": 100, "maximum": 599, "description": "Código HTTP de la respuesta finalizada." },
+        "duration_ms": { "$ref": "#/$defs/nonnegative", "description": "Duración en milisegundos medida con reloj monotónico." },
+        "source": { "enum": ["backend", "proxy"], "description": "Origen de medición validado por ingesta; no sumar ambos como peticiones distintas." }
+      }
+    },
+    "frontendError": {
+      "type": "object", "additionalProperties": false,
+      "required": ["error_code", "section_code", "release_version"],
+      "properties": {
+        "error_code": { "$ref": "#/$defs/code", "description": "Firma controlada del error, sin stack ni mensaje libre." },
+        "section_code": { "$ref": "#/$defs/slug", "description": "Sección donde se observó el error." },
+        "release_version": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", "description": "Versión o hash público del build, sin datos personales." }
+      }
+    },
+    "supplierRateUpdated": {
+      "type": "object", "additionalProperties": false,
+      "required": ["supplier_id", "previous_rate", "new_rate", "currency", "unit"],
+      "properties": {
+        "supplier_id": { "$ref": "#/$defs/numericId", "description": "ID del proveedor cuya tarifa cambió." },
+        "previous_rate": { "$ref": "#/$defs/positiveMoney", "description": "Tarifa anterior por unidad canónica." },
+        "new_rate": { "$ref": "#/$defs/positiveMoney", "description": "Tarifa nueva por la misma unidad; no sustituye costo de una entrada." },
+        "currency": { "$ref": "#/$defs/currency" },
+        "unit": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "supplierStatusChanged": {
+      "type": "object", "additionalProperties": false,
+      "required": ["supplier_id", "previous_status", "new_status"],
+      "properties": {
+        "supplier_id": { "$ref": "#/$defs/numericId", "description": "ID del proveedor afectado." },
+        "previous_status": { "enum": ["active", "suspended"], "description": "Estado persistido anterior, según SupplierStatus." },
+        "new_status": { "enum": ["active", "suspended"], "description": "Estado nuevo confirmado; debe diferir del anterior." }
+      }
+    },
+    "incidentCreated": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incident_id", "location_id", "category", "priority"],
+      "properties": {
+        "incident_id": { "$ref": "#/$defs/opaqueId", "description": "Identificador de la incidencia, sin datos de cliente." },
+        "location_id": { "$ref": "#/$defs/locationId" },
+        "category": { "enum": ["queja", "solicitud", "fallo_operativo"], "description": "Categoría operativa según IncidentCategory." },
+        "priority": { "enum": ["baja", "media", "alta", "critica"], "description": "Prioridad según IncidentPriority." }
+      }
+    },
+    "incidentStatusChanged": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incident_id", "previous_status", "new_status"],
+      "properties": {
+        "incident_id": { "$ref": "#/$defs/opaqueId", "description": "ID de la incidencia cuya transición se confirmó." },
+        "previous_status": { "enum": ["abierta", "en_progreso", "resuelta", "descartada"], "description": "Estado anterior del modelo actual, no del CSV histórico." },
+        "new_status": { "enum": ["abierta", "en_progreso", "resuelta", "descartada"], "description": "Estado nuevo válido; comprobar transición en validación semántica." }
+      }
+    },
+    "backgroundJobCompleted": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_type", "run_id", "outcome", "duration_ms", "error_code"],
+      "properties": {
+        "job_type": { "$ref": "#/$defs/slug", "description": "Tipo de job registrado, si existe el proceso." },
+        "run_id": { "$ref": "#/$defs/uuid", "description": "ID único de la ejecución; distinguir de requestId." },
+        "outcome": { "enum": ["success", "failure"], "description": "Resultado final de la ejecución." },
+        "duration_ms": { "$ref": "#/$defs/nonnegative", "description": "Duración total en milisegundos con reloj monotónico." },
+        "error_code": { "anyOf": [{ "$ref": "#/$defs/code" }, { "type": "null" }], "description": "null en éxito; código controlado obligatorio en fallo." }
+      },
+      "allOf": [
+        { "if": { "properties": { "outcome": { "const": "success" } } }, "then": { "properties": { "error_code": { "type": "null" } } }, "else": { "properties": { "error_code": { "$ref": "#/$defs/code" } } } }
+      ]
+    }
+  }
+}

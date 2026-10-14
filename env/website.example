@@ -1,0 +1,8 @@
+# ──────────────────────────────────────────────
+# Brasaland Website — Next.js (frontend público)
+# ──────────────────────────────────────────────
+# Copia este archivo como .env en uis/website/
+# o configúralo en el entorno de despliegue.
+# ──────────────────────────────────────────────
+
+# (Actualmente el website público no requiere variables de entorno adicionales)

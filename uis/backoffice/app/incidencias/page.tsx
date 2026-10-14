@@ -1,10 +1,39 @@
 "use client";
 
-import { useCallback } from "react";
-import IncidentForm from "./IncidentForm";
-import IncidentList from "./IncidentList";
-import IncidentsAnalyzer from "./IncidentsAnalyzer";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import IncidentList from "./IncidentList";
+
+/*
+ * Lazy loading:
+ * - IncidentForm: comienza cerrado (toggle interno). No hace falta cargar su
+ *   bundle hasta que el usuario pulsa "Registrar incidencia".
+ * - IncidentsAnalyzer: herramienta secundaria de análisis CSV que queda fuera
+ *   del primer paint. Diferimos su carga con un skeleton.
+ */
+const IncidentForm = dynamic(
+  () => import("./IncidentForm"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-stone-700 bg-stone-900 p-6 text-center text-sm text-stone-400">
+        Cargando formulario…
+      </div>
+    ),
+  }
+);
+
+const IncidentsAnalyzer = dynamic(
+  () => import("./IncidentsAnalyzer"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="py-8 text-center text-sm text-stone-400">
+        Cargando analizador CSV…
+      </div>
+    ),
+  }
+);
 
 export default function IncidenciasPage() {
   return (

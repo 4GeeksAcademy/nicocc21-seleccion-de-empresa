@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Query, status
 
+from services.brasaland_api.cache import cache, cached
 from services.brasaland_api.incidents_database import (
     create_incident,
     get_incident,
@@ -18,14 +21,17 @@ from services.brasaland_api.incidents_models import (
 )
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
+_logger = logging.getLogger(__name__)
 
 
 @router.get("/summary", response_model=dict)
+@cached(ttl_seconds=30, prefix="incidents")
 def get_summary():
     return get_incidents_summary()
 
 
 @router.get("", response_model=list[IncidentOut])
+@cached(ttl_seconds=15, prefix="incidents")
 def list_incidents_endpoint(
     estado: str | None = Query(default=None),
     local_id: str | None = Query(default=None),
@@ -58,6 +64,9 @@ def get_incident_endpoint(incident_id: int):
 @router.post("", response_model=IncidentOut, status_code=status.HTTP_201_CREATED)
 def create_incident_endpoint(payload: IncidentCreate):
     created = create_incident(payload.model_dump(mode="json"))
+    # Los listados y el summary se derivan de las incidencias → invalidar caché
+    cache.invalidate("incidents")
+    _logger.info("Caché de incidencias invalidada tras crear incidencia %s", created.get("id"))
     return IncidentOut.model_validate(created)
 
 
@@ -70,6 +79,10 @@ def update_incident_endpoint(incident_id: int, payload: IncidentUpdate):
     updated = update_incident(incident_id, updates)
     if updated is None:
         raise HTTPException(status_code=404, detail="Incidencia no encontrada")
+
+    # Los filtros del listado y el summary dependen de estos campos → invalidar
+    cache.invalidate("incidents")
+    _logger.info("Caché de incidencias invalidada tras actualizar incidencia %s", incident_id)
     return IncidentOut.model_validate(updated)
 
 
@@ -82,4 +95,8 @@ def update_incident_status_endpoint(incident_id: int, payload: IncidentStatusUpd
 
     if updated is None:
         raise HTTPException(status_code=404, detail="Incidencia no encontrada")
+
+    # El summary por estado cambia → invalidar caché
+    cache.invalidate("incidents")
+    _logger.info("Caché de incidencias invalidada tras cambiar estado %s", incident_id)
     return IncidentOut.model_validate(updated)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchProducts } from "../lib";
 import type { Ingredient } from "../types";
 
@@ -30,6 +30,27 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * useMemo: la clasificación de estado de stock recorre TODOS los productos
+   * aplicando 4 umbrales por cada uno (0, minimo*0.5, minimo, saludable).
+   * Es un cálculo no trivial (120+ productos en producción real) que solo
+   * depende de `products`, así que lo memoizamos para que el render de la
+   * tabla no lo repita si el estado no cambió.
+   */
+  const productStatus = useMemo(() => {
+    const map = new Map<
+      number,
+      { indicatorClass: string; label: string }
+    >();
+    for (const item of products) {
+      map.set(item.id, {
+        indicatorClass: stockIndicatorClass(item),
+        label: stockLabel(item),
+      });
+    }
+    return map;
+  }, [products]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,7 +124,9 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((item) => (
+              {products.map((item) => {
+                const status = productStatus.get(item.id);
+                return (
                 <tr
                   key={item.id}
                   className="border-b border-stone-800/60 hover:bg-stone-800/30"
@@ -120,9 +143,9 @@ export default function ProductsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${stockIndicatorClass(item)}`}
+                      className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${status?.indicatorClass ?? ""}`}
                     >
-                      {stockLabel(item)}
+                      {status?.label ?? ""}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -142,7 +165,8 @@ export default function ProductsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

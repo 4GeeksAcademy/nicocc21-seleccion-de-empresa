@@ -5,6 +5,8 @@
 - **Lenguaje principal:** TypeScript (ES2020, módulos NodeNext, estricto).
 - **Framework frontend:** Next.js (App Router) para apps en `uis/`.
 - **Lógica de negocio:** TypeScript puro en `src/hito2/`.
+- **Backend existente:** Python con FastAPI en `services/brasaland_api/`; registra rutas de autenticación, usuarios, perfiles, proveedores, incidencias e inventario.
+- **Persistencia:** inventario con SQLModel, diseñado para Supabase/PostgreSQL; autenticación, proveedores e incidencias con TinyDB según el arranque de la API. Esto describe el código, no una verificación del despliegue.
 - **Bundle web estático:** esbuild (para `web/`).
 - **Runtime de desarrollo:** tsx.
 
@@ -12,7 +14,7 @@
 
 - `tsconfig.json` raíz: `strict: true`, `noEmit: true`, `rootDir: src`.
 - Nomenclatura: `camelCase` para variables/funciones, `PascalCase` para tipos/interfaces.
-- Los tipos viven en `src/hito2/types.ts`.
+- Los tipos de la lógica TypeScript del Hito 2 viven en `src/hito2/types.ts`; los modelos ORM de inventario viven en `services/brasaland_api/inventory_models.py`.
 - Las funciones genéricas de colección viven en `src/hito2/collections.ts`.
 - Las agregaciones de negocio viven en `src/hito2/aggregations.ts`.
 - Las alertas de inventario viven en `src/hito2/inventory-alerts.ts`.
@@ -26,9 +28,9 @@
 │   └── hito2/              # Módulo de programación fundamental
 ├── web/                    # Web pública estática (HTML + JS bundle)
 ├── uis/                    # Aplicaciones de interfaz de usuario
-│   ├── website/            # (próximo) Next.js público
-│   └── backoffice/         # (próximo) Panel interno
-├── services/               # (próximo) APIs y workers
+│   ├── website/            # Next.js público existente
+│   └── backoffice/         # Panel interno existente
+├── services/               # Backend FastAPI existente en brasaland_api/
 ├── data/                   # Datos raw, procesados, pipelines
 ├── template/               # Plantillas y READMEs de guía
 ├── memory-bank/            # Contexto persistente del proyecto
@@ -66,6 +68,15 @@
 ### Categorías de insumo
 
 `comida`, `bebida`, `empaque`
+
+Estas categorías corresponden al modelo TypeScript del Hito 2. El contexto de telemetría distingue proteína, vegetal, salsa, bebida, empaque y limpieza; su correspondencia con los modelos existentes está pendiente de definir.
+
+### Inventario persistido y telemetría
+
+- Los modelos SQL son `Ingredient`, `IngredientEntry` e `IngredientExit`; no son los tipos simulados de `src/hito2/`.
+- El stock no se guarda como columna editable: se deriva de entradas menos salidas.
+- Cada movimiento SQL incluye `user_uuid` y `location_id` entero. El contexto de negocio identifica locales como `L01`–`L14`; no se ha definido aquí una equivalencia entre ambos identificadores.
+- El diseño de telemetría está documentado en `docs/telemetry/`, con contrato JSON Schema Draft 2020-12 versión 1.0.0. La instrumentación sigue pendiente; las rutas existentes no demuestran captura ni almacenamiento de eventos.
 
 ### Prioridades de alerta
 

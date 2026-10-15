@@ -30,7 +30,7 @@
 
 **Por qué:** El monorepo puede alojar múltiples servicios (admin-api, data-processor, etc.). Cada uno documentado y aislado.
 
-**Impacto:** Cuando creemos la API, será `services/brasaland-api/` (o similar), no un archivo suelto.
+**Impacto actual:** La API ya existe en `services/brasaland_api/` y usa FastAPI. La ubicación prevista se conserva dentro de `services/`, no como archivo suelto en la raíz.
 
 ## 5. `.agents/` para configuración, `/agents/` para producto
 

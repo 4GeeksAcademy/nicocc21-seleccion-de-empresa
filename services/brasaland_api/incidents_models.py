@@ -116,6 +116,21 @@ class IncidentOut(BaseModel):
     updated_at: str
 
 
+class IncidentsSummaryOut(BaseModel):
+    """Contrato de respuesta de GET /incidents/summary.
+
+    Los conteos por dimensión nunca deben exponer objetos internos:
+    cada `by_*` es un mapeo plano clave -> recuento, sin relaciones
+    anidadas ni claves internas de TinyDB.
+    """
+
+    total: int
+    by_state: dict[str, int]
+    by_category: dict[str, int]
+    by_priority: dict[str, int]
+    by_origin: dict[str, int]
+
+
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 

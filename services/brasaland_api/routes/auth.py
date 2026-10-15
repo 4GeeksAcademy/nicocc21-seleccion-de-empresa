@@ -37,26 +37,25 @@ from services.brasaland_api.models import (
     UserCreate,
     UserMeOut,
     UserMeProfile,
-    UserOut,
+    UserRegisteredOut,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 _logger = logging.getLogger(__name__)
 
 
-def _user_to_out(user: dict) -> UserOut:
-    """Convierte un dict de usuario a UserOut."""
-    return UserOut(
+def _user_to_registered_out(user: dict) -> UserRegisteredOut:
+    """Convierte un dict de usuario a UserRegisteredOut (sin email)."""
+    return UserRegisteredOut(
         id=user["id"],
-        email=user["email"],
         is_active=user.get("is_active", True),
         role=user.get("role", "user"),
         created_at=user.get("created_at", ""),
     )
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate) -> UserOut:
+@router.post("/register", response_model=UserRegisteredOut, status_code=status.HTTP_201_CREATED)
+def register(payload: UserCreate) -> UserRegisteredOut:
     """Registrar un nuevo usuario con email y contraseña.
 
     Acepta campos opcionales de perfil inicial (name, phone, address)
@@ -87,7 +86,7 @@ def register(payload: UserCreate) -> UserOut:
         except ValueError:
             _logger.warning("No se pudo crear perfil para usuario %s", user["id"])
 
-    return _user_to_out(user)
+    return _user_to_registered_out(user)
 
 
 @router.post("/login", response_model=Token)

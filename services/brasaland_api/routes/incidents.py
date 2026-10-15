@@ -15,14 +15,15 @@ from services.brasaland_api.incidents_models import (
     IncidentOut,
     IncidentStatusUpdate,
     IncidentUpdate,
+    IncidentsSummaryOut,
 )
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
-@router.get("/summary", response_model=dict)
-def get_summary():
-    return get_incidents_summary()
+@router.get("/summary", response_model=IncidentsSummaryOut)
+def get_summary() -> IncidentsSummaryOut:
+    return IncidentsSummaryOut(**get_incidents_summary())
 
 
 @router.get("", response_model=list[IncidentOut])

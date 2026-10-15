@@ -18,6 +18,7 @@ from services.brasaland_api.incidents_models import (
     IncidentOut,
     IncidentStatusUpdate,
     IncidentUpdate,
+    IncidentsSummaryOut,
 )
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])

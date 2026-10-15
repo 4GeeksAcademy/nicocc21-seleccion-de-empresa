@@ -1,6 +1,16 @@
 # Estado Actual del Proyecto
 
-> Última actualización: 30 de julio de 2026
+> Última revisión documental: 14 de octubre de 2026. Las tablas históricas se conservan; esta revisión verifica código, no el funcionamiento del despliegue.
+
+## Estado verificado para la fase de telemetría
+
+- `services/brasaland_api/main.py` configura FastAPI y registra rutas de autenticación, usuarios, perfiles, proveedores, incidencias e inventario.
+- La API declara TinyDB para autenticación, proveedores e incidencias, y SQLModel/Supabase PostgreSQL para inventario.
+- `inventory_models.py` define ingredientes, entradas y salidas; los movimientos incluyen cantidad, local y usuario. El stock se deriva de los movimientos y no se almacena como columna.
+- `src/hito2/inventory-alerts.ts` ya implementa `generarAlertasInventario`, `tieneStockBajo` y `calcularImpactoEnDemanda`.
+- Los entregables de diseño existen en `docs/telemetry/telemetry-plan.md` y `docs/telemetry/event-schemas.json`: 22 eventos, seis obligatorios y 16 oportunidades identificadas. No se ha instrumentado la aplicación.
+- La revisión del contrato Draft 2020-12 aceptó 31 casos válidos y rechazó 499 inválidos con fixtures sintéticas en memoria; no verifica el pipeline ni los datos reales. La publicación del PR sigue pendiente de aprobación.
+- Quedan por definir las correspondencias entre entidades, categorías e identificadores existentes y los exigidos por el contexto de telemetría.
 
 ## Hito 1 — Web pública
 
@@ -37,15 +47,20 @@
 | `uis/website/` | ✅ Creado | Next.js público con contenido Brasaland |
 | `uis/backoffice/` | ✅ Creado | Panel interno con lógica Hito 2 integrada |
 
-## Dependencias instaladas
+## Dependencias declaradas en la raíz
 
 ```json
 {
+  "@types/jest": "^30.0.0",
   "esbuild": "^0.25.9",
+  "jest": "^30.5.1",
+  "ts-jest": "^29.4.12",
   "tsx": "^4.19.0",
   "typescript": "^5.6.3"
 }
 ```
+
+El backend declara sus dependencias Python en `pyproject.toml`; cada app en `uis/` mantiene su propio `package.json`. Esta lista no certifica qué paquetes están instalados en el entorno.
 
 ## Notas importantes
 

@@ -103,6 +103,19 @@ class UserOut(BaseModel):
     created_at: str
 
 
+class UserRegisteredOut(BaseModel):
+    """Respuesta de registro (sin email ni credenciales).
+
+    El email viaja en el body de la petición y el cliente hace login
+    inmediatamente después, por lo que no se reenvía en la respuesta.
+    """
+
+    id: int
+    is_active: bool
+    role: UserRole
+    created_at: str
+
+
 class UserUpdate(BaseModel):
     """Actualizar credenciales — solo admin puede cambiar email/role."""
 

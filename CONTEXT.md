@@ -4,6 +4,8 @@
 - Reto: Seleccion de empresa mediante agente de IA
 - Autor de la propuesta: Nicolas (enfoque desde experiencia previa en restaurantes)
 
+> Revisión documental: 14 de octubre de 2026. Se conserva el briefing original y se corrigen referencias a componentes que ya existen. Esta revisión no certifica un despliegue en producción ni autoriza instrumentación.
+
 ## 1. Problema de fondo
 
 Brasaland opera 14 locales sin visibilidad centralizada. Mariana (Direccion ejecutiva) toma decisiones reactivas, "apagando incendios", sin datos exactos de como funciona cada local.
@@ -58,7 +60,7 @@ Mientras no haya integracion con POS/facturacion real, se simulara todo el flujo
 | Stock general por categoria | `Insumo` ya incluye `categoria`; `contarPorCategoria()` y `agruparPor()` permiten ver stock agrupado. |
 | Control de faltantes | `tieneStockBajo(insumo)` (ya implementado): compara `stockActual` vs `stockMinimo`. |
 | Anticipar demanda por temporada | `FechaEspecial` + `calcularImpactoEnDemanda()` (ya implementado): devuelve factor vigente (ej. San Valentin x1.6, Navidad x2.0). |
-| Alertas de faltantes/excesos | Pendiente: funcion que cruce `tieneStockBajo()` + `calcularImpactoEnDemanda()` para generar alertas priorizadas. |
+| Alertas de faltantes/excesos | Implementadas en `src/hito2/inventory-alerts.ts` mediante `generarAlertasInventario()`, que cruza stock, demanda y consumo para generar alertas priorizadas. |
 | Perecederos vs no perecederos | `Insumo.perecedero` + `diasVidaUtil` ya modelado para logica de vencimiento cercano. |
 | Agregar productos nuevos | Crear nuevo objeto `Insumo`; el modelo lo soporta sin cambios de esquema. |
 
@@ -84,21 +86,24 @@ Esto no se construye en esta fase, pero el modelo de datos ya esta orientado par
 
 ## 5. Estado actual vs proximos pasos
 
-### Ya construido (`brasaland-utils/`)
+### Ya construido (lógica TypeScript en `src/hito2/`)
 
 - Modelo de datos completo para ambos frentes (`types.ts`).
 - Funciones de colecciones: filtrar, ordenar, buscar, agrupar (`collections.ts`).
 - Reportes agregados: financiero por local e inventario por insumo (`aggregations.ts`).
 - Validaciones de negocio por entidad (`validations.ts`).
+- Alertas de inventario en `inventory-alerts.ts`.
+- API FastAPI en `services/brasaland_api/`, con rutas de autenticación, usuarios, perfiles, proveedores, incidencias e inventario. El inventario usa modelos SQLModel para Supabase/PostgreSQL; otros módulos usan TinyDB.
+- Apps Next.js pública e interna en `uis/website/` y `uis/backoffice/`. Su existencia no implica que todos los requisitos del portal ejecutivo estén completos.
 
-### Falta construir
+### Alcance original pendiente de verificar o completar
 
-- Funcion de alertas de stock (cruce de `tieneStockBajo` + `calcularImpactoEnDemanda`).
-- API (Flask o Next.js API routes) para exponer funciones como endpoints.
 - Portal ejecutivo (frontend) con totales por local y filtro de fechas.
 - Vista de Operaciones (frontend) con estado de stock y alertas.
 - Job de informe semanal automatico.
 - Mecanismo de entrega de alertas e informes (en esta fase, dentro del portal).
+
+Estos requisitos históricos no se implementan como parte de la corrección documental ni se dan por ausentes sin revisar sus flujos.
 
 ## 6. Modulo de incidencias postventa (simulacion interna)
 
@@ -194,3 +199,13 @@ Una fila es invalida si cumple al menos una de estas condiciones:
 ### Observacion de privacidad
 
 El CSV simulado contiene identificadores, correos y telefonos ficticios de prueba (dominio brasaland.test), por lo que no hay datos personales reales expuestos.
+
+## 7. Contexto adicional de telemetría
+
+El contexto de telemetría compartido para esta fase complementa el briefing original. Los entregables previstos son un plan Markdown y esquemas JSON en `docs/telemetry/`, sujetos a aprobación paso a paso; aún no se autoriza instrumentación.
+
+Eventos obligatorios: `inbound_order_created`, `outbound_order_created`, `stock_waste_registered`, `stock_threshold_triggered`, `direct_stock_edit_rejected` e `ingredient_price_variance_detected`.
+
+Restricciones: conservar `COP`/`USD` según el país del local, separar país e idioma de UI, mantener movimientos de stock trazables mediante órdenes y excluir nombres de empleados y datos de clientes de `properties`.
+
+Las entidades del contexto (`Product`, `InboundOrder`, `OutboundOrder`) deben relacionarse explícitamente con los modelos actuales (`Ingredient`, `IngredientEntry`, `IngredientExit`). El mapeo de categorías y de `location_id` entero a los códigos `L01`–`L14` está pendiente; no se cambia el esquema existente en esta fase.

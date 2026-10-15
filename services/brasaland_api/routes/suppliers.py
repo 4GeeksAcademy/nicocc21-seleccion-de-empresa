@@ -15,6 +15,7 @@ from services.brasaland_api.database import (
 )
 from services.brasaland_api.models import (
     Country,
+    MessageResponse,
     SupplierCategory,
     SupplierCreate,
     SupplierOut,
@@ -102,8 +103,8 @@ def update_supplier_status_endpoint(
         raise HTTPException(status_code=500, detail="Error al actualizar estado")
 
 
-@router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_supplier_endpoint(supplier_id: int) -> None:
+@router.delete("/{supplier_id}", response_model=MessageResponse, status_code=status.HTTP_200_OK)
+def delete_supplier_endpoint(supplier_id: int) -> MessageResponse:
     try:
         deleted = delete_supplier(supplier_id)
         if not deleted:
@@ -113,4 +114,4 @@ def delete_supplier_endpoint(supplier_id: int) -> None:
     except Exception:
         _logger.exception("Error al eliminar proveedor %s", supplier_id)
         raise HTTPException(status_code=500, detail="Error al eliminar proveedor")
-    return {"message": "Proveedor eliminado"}
+    return MessageResponse(message="Proveedor eliminado")

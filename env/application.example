@@ -1,0 +1,9 @@
+# ──────────────────────────────────────────────
+# Brasaland Application — Next.js (frontend público)
+# ──────────────────────────────────────────────
+# Copia este archivo como .env en uis/application/
+# o configúralo en el entorno de despliegue.
+# ──────────────────────────────────────────────
+
+# === URLs de backend (API upstream) ===
+SUPPLIERS_BACKEND_BASE_URL=http://127.0.0.1:8001

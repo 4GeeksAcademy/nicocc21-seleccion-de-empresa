@@ -24,6 +24,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from services.brasaland_api.auth import get_current_user
+from services.brasaland_api.cache import cache, cached
 from services.brasaland_api.database import get_db
 from services.brasaland_api.inventory_models import Ingredient, IngredientEntry, IngredientExit
 from services.brasaland_api.schemas import (
@@ -105,9 +106,10 @@ def _get_ingredient_or_404(session: Session, ingredient_id: int) -> Ingredient:
     description=(
         "Devuelve todos los insumos del inventario con su stock actual calculado "
         "dinámicamente (SUM entradas - SUM salidas). Soporta filtros opcionales "
-        "por categoría y país."
+        "por categoría y país. [Cacheado TTL=60s]"
     ),
 )
+@cached(ttl_seconds=60, skip_args={"session"}, prefix="inventory")
 def list_products(
     session: Session = Depends(get_db),
     categoria: Literal["meat", "produce", "sauce", "beverage", "packaging", "cleaning"] | None = Query(
@@ -173,6 +175,10 @@ def create_product(
     session.commit()
     session.refresh(ingredient)
 
+    # Los datos subyacentes cambiaron → invalidar caché del dominio inventory
+    cache.invalidate("inventory")
+    _logger.info("Caché de inventario invalidada tras crear insumo %s", ingredient.id)
+
     return IngredientOut(**ingredient.model_dump(), current_stock=0.0)
 
 
@@ -185,12 +191,13 @@ def create_product(
     "/products/{product_id}",
     response_model=IngredientOut,
     summary="Obtener insumo por ID",
-    description="Devuelve un insumo específico con su stock actual calculado dinámicamente.",
+    description="Devuelve un insumo específico con su stock actual calculado dinámicamente. [Cacheado TTL=60s]",
     responses={
         200: {"description": "Insumo encontrado"},
         404: {"description": "Insumo no encontrado"},
     },
 )
+@cached(ttl_seconds=60, skip_args={"session"}, prefix="inventory")
 def get_product(
     product_id: int, session: Session = Depends(get_db)
 ) -> IngredientOut:
@@ -234,6 +241,10 @@ def create_inbound(
     session.add(entry)
     session.commit()
     session.refresh(entry)
+
+    # El stock derivado y el historial de órdenes cambiaron → invalidar caché
+    cache.invalidate("inventory")
+    _logger.info("Caché de inventario invalidada tras entrada de stock (insumo %s)", payload.ingredient_id)
 
     return IngredientEntryOut(**entry.model_dump(), ingredient_name=ingredient.name)
 
@@ -285,6 +296,10 @@ def create_outbound(
     session.commit()
     session.refresh(exit_)
 
+    # El stock derivado y el historial de órdenes cambiaron → invalidar caché
+    cache.invalidate("inventory")
+    _logger.info("Caché de inventario invalidada tras salida de stock (insumo %s)", payload.ingredient_id)
+
     return IngredientExitOut(**exit_.model_dump(), ingredient_name=ingredient.name)
 
 
@@ -300,9 +315,11 @@ def create_outbound(
     description=(
         "Devuelve el historial completo de movimientos de inventario "
         "(entradas y salidas) en orden cronológico inverso. "
-        "Cada movimiento incluye el nombre del insumo (via join) para evitar N+1."
+        "Cada movimiento incluye el nombre del insumo (via join) para evitar N+1. "
+        "[Cacheado TTL=60s]"
     ),
 )
+@cached(ttl_seconds=60, skip_args={"session"}, prefix="inventory")
 def list_orders(
     session: Session = Depends(get_db),
 ) -> list[IngredientEntryOut | IngredientExitOut]:

@@ -1,0 +1,24 @@
+# ──────────────────────────────────────────────
+# Brasaland API — Backend (FastAPI + TinyDB + PostgreSQL)
+# ──────────────────────────────────────────────
+# Copia este archivo como backend.env en la raíz del proyecto
+# o en services/brasaland_api/.env según tu flujo de trabajo.
+# NUNCA subas .env al repositorio.
+# ──────────────────────────────────────────────
+
+# === JWT (autenticación) ===
+JWT_SECRET_KEY=
+JWT_EXPIRE_MINUTES=60
+RESET_TOKEN_EXPIRE_MINUTES=15
+
+# === Email transaccional (Resend) ===
+# Regístrate en https://resend.com y crea una API key
+RESEND_API_KEY=
+FRONTEND_URL=http://localhost:3000
+
+# === PostgreSQL (inventario — Hito 5) ===
+DATABASE_URL=
+
+# === Seed de administrador ===
+SEED_ADMIN_EMAIL=admin@brasaland.com
+SEED_ADMIN_PASSWORD=Admin1234

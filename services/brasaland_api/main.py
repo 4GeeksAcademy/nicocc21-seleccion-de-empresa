@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # Cargar variables de entorno desde .env (antes de importar módulos que las usan)
@@ -25,6 +26,7 @@ from services.brasaland_api.seed import run_seed
 import logging
 
 _logger = logging.getLogger(__name__)
+_timing_logger = logging.getLogger("api.timing")
 
 
 @asynccontextmanager
@@ -55,6 +57,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ─── Middleware de timing (caching diagnostics) ────────────────────────
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = (time.perf_counter() - start) * 1000  # ms
+
+    _timing_logger.info(
+        "%s %s → %s | %.1fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration,
+    )
+    return response
 
 
 @app.get("/")

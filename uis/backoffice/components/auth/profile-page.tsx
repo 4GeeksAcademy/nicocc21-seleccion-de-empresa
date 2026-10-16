@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMe, updateProfile, logout } from "../../../../src/auth/auth-client";
+import { useWorkflowTelemetry } from "../use-workflow-telemetry";
 
 interface ProfileData {
   email: string;
@@ -13,6 +14,7 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
+  const workflow = useWorkflowTelemetry("profile_update");
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,7 @@ export default function ProfilePage() {
 
     try {
       await updateProfile({ full_name: fullName, phone, address });
+      workflow.finish();
       setSaved(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al guardar";
@@ -151,7 +154,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} onChangeCapture={() => workflow.changed()} className="space-y-4">
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-stone-300">
                 Nombre completo
@@ -201,6 +204,7 @@ export default function ProfilePage() {
               </button>
               <a
                 href="/"
+                onClick={(event) => { if (saving) event.preventDefault(); else workflow.cancel(); }}
                 className="rounded-lg border border-stone-600 bg-stone-800 px-4 py-2 text-sm font-medium text-stone-200 transition hover:bg-stone-700"
               >
                 Volver

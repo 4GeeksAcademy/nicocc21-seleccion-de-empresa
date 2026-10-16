@@ -1,18 +1,24 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { fetchProducts, createInboundOrder } from "../../lib";
-import type { Ingredient } from "../../types";
+import { useRouter, useSearchParams } from "next/navigation";
+import { fetchProducts, fetchInventoryLocations, fetchInventorySuppliers, createInboundOrder } from "../../lib";
+import type { Ingredient, InventoryLocation, InventorySupplier } from "../../types";
+import { useWorkflowTelemetry } from "../../../../components/use-workflow-telemetry";
 
 export default function InboundOrderPage() {
+  const workflow = useWorkflowTelemetry("inventory_inbound");
+  const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedId = searchParams.get("product_id");
 
   const [products, setProducts] = useState<Ingredient[]>([]);
   const [ingredientId, setIngredientId] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [supplierName, setSupplierName] = useState("");
+  const [suppliers, setSuppliers] = useState<InventorySupplier[]>([]);
+  const [locations, setLocations] = useState<InventoryLocation[]>([]);
+  const [supplierId, setSupplierId] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
   const [locationId, setLocationId] = useState("1");
 
   const [submitting, setSubmitting] = useState(false);
@@ -21,8 +27,12 @@ export default function InboundOrderPage() {
 
   const loadProducts = useCallback(async () => {
     try {
-      const data = await fetchProducts();
+      const [data, supplierData, locationData] = await Promise.all([
+        fetchProducts(), fetchInventorySuppliers(), fetchInventoryLocations(),
+      ]);
       setProducts(data);
+      setSuppliers(supplierData);
+      setLocations(locationData);
       if (preselectedId && data.some((p) => String(p.id) === preselectedId)) {
         setIngredientId(preselectedId);
       }
@@ -39,6 +49,7 @@ export default function InboundOrderPage() {
     () => products.find((p) => String(p.id) === ingredientId),
     [products, ingredientId],
   );
+  const selectedLocation = locations.find((location) => String(location.id) === locationId);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,14 +57,18 @@ export default function InboundOrderPage() {
     setError(null);
 
     const parsedQty = Number(quantity);
-    if (!quantity || parsedQty <= 0) {
+    if (!quantity || !Number.isFinite(parsedQty) || parsedQty <= 0) {
       setError("La cantidad debe ser un número positivo.");
       return;
     }
 
     const parsedLocation = Number(locationId);
-    if (parsedLocation < 1 || parsedLocation > 14) {
+    if (!selectedLocation || !Number.isInteger(parsedLocation)) {
       setError("El local debe estar entre 1 y 14.");
+      return;
+    }
+    if (!supplierId || !unitPrice || !Number.isFinite(Number(unitPrice)) || Number(unitPrice) <= 0) {
+      setError("Selecciona un proveedor y un precio positivo.");
       return;
     }
 
@@ -62,15 +77,19 @@ export default function InboundOrderPage() {
       const result = await createInboundOrder({
         ingredient_id: Number(ingredientId),
         quantity: parsedQty,
-        supplier_name: supplierName.trim(),
+        supplier_id: Number(supplierId),
+        unit_price: unitPrice,
+        currency: selectedLocation.currency,
         location_id: parsedLocation,
-      });
+      }, workflow.headers());
 
+      workflow.finish();
       setSuccess(
         `Entrada registrada: ${result.quantity} ${selectedProduct?.unit ?? ""} de ${result.ingredient_name} desde ${result.supplier_name}.`,
       );
       setQuantity("");
-      setSupplierName("");
+      setSupplierId("");
+      setUnitPrice("");
       setLocationId("1");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al registrar entrada";
@@ -103,6 +122,7 @@ export default function InboundOrderPage() {
 
       <form
         onSubmit={handleSubmit}
+        onChangeCapture={() => workflow.changed()}
         className="rounded-xl border border-stone-700 bg-stone-950/60 p-6 space-y-4"
       >
         <label className="block text-sm">
@@ -138,26 +158,38 @@ export default function InboundOrderPage() {
 
         <label className="block text-sm">
           <span className="mb-1 block text-stone-300">Proveedor</span>
-          <input
+          <select
             required
-            value={supplierName}
-            onChange={(e) => setSupplierName(e.target.value)}
-            placeholder="Nombre del proveedor"
+            value={supplierId}
+            onChange={(e) => setSupplierId(e.target.value)}
+            className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
+          >
+            <option value="">Seleccionar proveedor</option>
+            {suppliers.filter((supplier) => supplier.status === "active" && supplier.currency === selectedLocation?.currency).map((supplier) => (
+              <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-sm">
+          <span className="mb-1 block text-stone-300">Precio unitario ({selectedLocation?.currency ?? ""})</span>
+          <input
+            required type="number" min="0.01" step="0.01" value={unitPrice}
+            onChange={(event) => setUnitPrice(event.target.value)}
             className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
           />
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-stone-300">Local (1-14)</span>
-          <input
+          <span className="mb-1 block text-stone-300">Local</span>
+          <select
             required
-            type="number"
-            min="1"
-            max="14"
             value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
+            onChange={(e) => { setLocationId(e.target.value); setSupplierId(""); }}
             className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
-          />
+          >
+            {locations.map((location) => <option key={location.id} value={location.id}>{location.code} - {location.city} ({location.currency})</option>)}
+          </select>
         </label>
 
         <button
@@ -166,6 +198,14 @@ export default function InboundOrderPage() {
           className="w-full rounded-lg bg-emerald-700 px-4 py-3 font-bold text-white hover:bg-emerald-600 disabled:opacity-50"
         >
           {submitting ? "Registrando…" : "Registrar entrada"}
+        </button>
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => { workflow.cancel(); router.push("/inventory/orders"); }}
+          className="w-full rounded-lg border border-stone-600 px-4 py-3 text-stone-200 hover:border-stone-400 disabled:opacity-50"
+        >
+          Cancelar
         </button>
       </form>
     </div>

@@ -9,6 +9,8 @@
  */
 
 import { getToken } from "../../../../src/auth/auth-client";
+import { navigationTelemetry } from "../telemetry-instrumentation";
+import { telemetryService } from "../telemetry";
 import type {
   Ingredient,
   IngredientEntryCreate,
@@ -17,9 +19,26 @@ import type {
   IngredientExitOut,
   InventoryOrder,
   ApiError,
+  InventoryLocation,
+  InventorySupplier,
 } from "./types";
 
 const API_BASE = "/api/inventory";
+
+function reportConnectionFailure(): void {
+  if (typeof window !== "undefined") {
+    navigationTelemetry.error("API_CONNECTION_FAILED", window.location.pathname);
+  }
+}
+
+async function inventoryFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (error) {
+    reportConnectionFailure();
+    throw error;
+  }
+}
 
 // ─── Helper ─────────────────────────────────────────────────────
 
@@ -31,11 +50,13 @@ function authHeaders(): Record<string, string> {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
+    if (response.status === 502) reportConnectionFailure();
     let message = `Error del servidor (${response.status})`;
     try {
       const body = (await response.json()) as ApiError;
       if (body.error) message = body.error;
-      else if (body.detail) message = body.detail;
+      else if (typeof body.detail === "string") message = body.detail;
+      else if (body.detail?.code) message = body.detail.code;
     } catch {
       // usa el mensaje por defecto
     }
@@ -47,25 +68,41 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // ─── Products ───────────────────────────────────────────────────
 
 export async function fetchProducts(): Promise<Ingredient[]> {
-  const res = await fetch(`${API_BASE}/products`, { cache: "no-store" });
+  const res = await inventoryFetch(`${API_BASE}/products`, { cache: "no-store" });
   return handleResponse<Ingredient[]>(res);
 }
 
-export async function fetchProduct(id: number): Promise<Ingredient> {
-  const res = await fetch(`${API_BASE}/products/${id}`, { cache: "no-store" });
+export async function fetchProduct(id: number, locationId?: number): Promise<Ingredient> {
+  const parameters = new URLSearchParams();
+  if (locationId !== undefined) parameters.set("location_id", String(locationId));
+  const query = parameters.size ? `?${parameters.toString()}` : "";
+  const res = await inventoryFetch(`${API_BASE}/products/${id}${query}`, { cache: "no-store" });
   return handleResponse<Ingredient>(res);
+}
+
+export async function fetchInventoryLocations(): Promise<InventoryLocation[]> {
+  return handleResponse<InventoryLocation[]>(await inventoryFetch(`${API_BASE}/locations`, { cache: "no-store" }));
+}
+
+export async function fetchInventorySuppliers(): Promise<InventorySupplier[]> {
+  return handleResponse<InventorySupplier[]>(await inventoryFetch("/api/suppliers", {
+    cache: "no-store", headers: authHeaders(),
+  }));
 }
 
 // ─── Orders: Inbound ─────────────────────────────────────────────
 
 export async function createInboundOrder(
   payload: IngredientEntryCreate,
+  correlation: Record<string, string> = {},
 ): Promise<IngredientEntryOut> {
-  const res = await fetch(`${API_BASE}/orders/inbound`, {
+  const res = await inventoryFetch(`${API_BASE}/orders/inbound`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
+      ...telemetryService.getSessionHeaders(),
+      ...correlation,
     },
     body: JSON.stringify(payload),
   });
@@ -76,12 +113,15 @@ export async function createInboundOrder(
 
 export async function createOutboundOrder(
   payload: IngredientExitCreate,
+  correlation: Record<string, string> = {},
 ): Promise<IngredientExitOut> {
-  const res = await fetch(`${API_BASE}/orders/outbound`, {
+  const res = await inventoryFetch(`${API_BASE}/orders/outbound`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
+      ...telemetryService.getSessionHeaders(),
+      ...correlation,
     },
     body: JSON.stringify(payload),
   });
@@ -91,6 +131,6 @@ export async function createOutboundOrder(
 // ─── Orders: List (combined) ─────────────────────────────────────
 
 export async function fetchOrders(): Promise<InventoryOrder[]> {
-  const res = await fetch(`${API_BASE}/orders`, { cache: "no-store" });
+  const res = await inventoryFetch(`${API_BASE}/orders`, { cache: "no-store" });
   return handleResponse<InventoryOrder[]>(res);
 }

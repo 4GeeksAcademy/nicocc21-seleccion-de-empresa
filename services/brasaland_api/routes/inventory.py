@@ -17,16 +17,23 @@ Dominio (alineado con el contexto de Hito 5):
 from __future__ import annotations
 
 import logging
-from typing import Literal
+import os
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from services.brasaland_api.auth import get_current_user
 from services.brasaland_api.cache import cache, cached
-from services.brasaland_api.database import get_db
-from services.brasaland_api.inventory_models import Ingredient, IngredientEntry, IngredientExit
+from services.brasaland_api.database import get_db, get_supplier_by_id
+from services.brasaland_api.inventory_models import Ingredient, IngredientEntry, IngredientExit, IngredientLocation
+from services.brasaland_api.inventory_telemetry import (
+    canonical_unit, event_context, inventory_base, location_for, locations,
+    make_event, money, price_variance, workflow_completed,
+)
 from services.brasaland_api.schemas import (
     IngredientCreate,
     IngredientEntryCreate,
@@ -38,6 +45,42 @@ from services.brasaland_api.schemas import (
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 _logger = logging.getLogger(__name__)
+PRICE_VARIANCE_THRESHOLD = Decimal(os.getenv("TELEMETRY_PRICE_VARIANCE_THRESHOLD", "10"))
+if not PRICE_VARIANCE_THRESHOLD.is_finite() or PRICE_VARIANCE_THRESHOLD <= 0:
+    raise RuntimeError("TELEMETRY_PRICE_VARIANCE_THRESHOLD debe ser positivo")
+
+
+async def reject_direct_stock_fields(
+    request: Request,
+    session: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> None:
+    try:
+        body = await request.json()
+    except ValueError:
+        return
+    if not isinstance(body, dict):
+        return
+    attempted = [name for name in ("stock", "stockActual", "current_stock") if name in body]
+    if not attempted:
+        return
+    product_id = str(request.path_params.get("product_id", ""))
+    ingredient = session.get(Ingredient, int(product_id)) if product_id.isdecimal() else None
+    location_id = body.get("location_id")
+    location = location_for(location_id) if type(location_id) is int and 1 <= location_id <= 14 else None
+    event = make_event("direct_stock_edit_rejected", {
+        "location_id": location["code"] if location else None,
+        "country": location["country"] if location else None,
+        "currency": location["currency"] if location else None,
+        "product_id": str(ingredient.id) if ingredient else None,
+        "product_category": ingredient.category if ingredient else None,
+        "unit": canonical_unit(ingredient.unit) if ingredient else None,
+        "quantity": None, "rejection_code": "DIRECT_STOCK_EDIT_FORBIDDEN",
+        "operation": "direct_stock_edit", "attempted_fields": attempted,
+    }, event_context(request, str(current_user["id"])))
+    raise HTTPException(status_code=403, detail={
+        "code": "DIRECT_STOCK_EDIT_FORBIDDEN", "telemetry_events": [event],
+    })
 
 
 # =============================================================================
@@ -45,19 +88,21 @@ _logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-def _sum_quantity(session: Session, model, ingredient_id: int) -> float:
+def _sum_quantity(session: Session, model, ingredient_id: int, location_id: int | None = None) -> float:
     """Suma total de quantity para un ingrediente en un modelo de movimiento."""
     stmt = select(func.coalesce(func.sum(model.quantity), 0.0)).where(
         model.ingredient_id == ingredient_id
     )
+    if location_id is not None:
+        stmt = stmt.where(model.location_id == location_id)
     return float(session.exec(stmt).one())
 
 
-def _calculate_stock(session: Session, ingredient_id: int) -> float:
+def _calculate_stock(session: Session, ingredient_id: int, location_id: int | None = None) -> float:
     """Stock = SUM(entries) - SUM(exits). Nunca se almacena."""
-    entries_total = _sum_quantity(session, IngredientEntry, ingredient_id)
-    exits_total = _sum_quantity(session, IngredientExit, ingredient_id)
-    return round(entries_total - exits_total, 2)
+    entries_total = _sum_quantity(session, IngredientEntry, ingredient_id, location_id)
+    exits_total = _sum_quantity(session, IngredientExit, ingredient_id, location_id)
+    return round(entries_total - exits_total, 10 if location_id is not None else 2)
 
 
 def _stock_map_for_all(session: Session) -> dict[int, float]:
@@ -94,9 +139,24 @@ def _get_ingredient_or_404(session: Session, ingredient_id: int) -> Ingredient:
     return ingredient
 
 
+def _lock_ingredient(session: Session, ingredient_id: int) -> Ingredient:
+    ingredient = session.exec(
+        select(Ingredient).where(Ingredient.id == ingredient_id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).first()
+    if ingredient is None:
+        raise HTTPException(status_code=404, detail=f"Insumo con ID {ingredient_id} no encontrado")
+    return ingredient
+
+
 # =============================================================================
 # Products — GET listado con filtros
 # =============================================================================
+
+
+@router.get("/locations", response_model=list[dict[str, object]])
+def list_inventory_locations() -> list[dict[str, object]]:
+    return locations()
 
 
 @router.get(
@@ -143,6 +203,7 @@ def list_products(
 
 @router.post(
     "/products",
+    dependencies=[Depends(reject_direct_stock_fields)],
     response_model=IngredientOut,
     status_code=status.HTTP_201_CREATED,
     summary="Crear insumo",
@@ -199,11 +260,21 @@ def create_product(
 )
 @cached(ttl_seconds=60, skip_args={"session"}, prefix="inventory")
 def get_product(
-    product_id: int, session: Session = Depends(get_db)
+    product_id: int, session: Session = Depends(get_db),
+    location_id: Annotated[int | None, Query(ge=1, le=14)] = None,
 ) -> IngredientOut:
     ingredient = _get_ingredient_or_404(session, product_id)
-    current_stock = _calculate_stock(session, product_id)
-    return IngredientOut(**ingredient.model_dump(), current_stock=current_stock)
+    current_stock = _calculate_stock(session, product_id, location_id)
+    minimum = session.get(IngredientLocation, (product_id, location_id)) if location_id else None
+    return IngredientOut(
+        **ingredient.model_dump(), current_stock=current_stock, location_id=location_id,
+        location_minimum_stock=minimum.minimum_stock if minimum else None,
+    )
+
+
+@router.patch("/products/{product_id}", dependencies=[Depends(reject_direct_stock_fields)])
+def reject_product_update(product_id: int, current_user: dict = Depends(get_current_user)) -> None:
+    raise HTTPException(status_code=400, detail="PRODUCT_UPDATE_NOT_SUPPORTED")
 
 
 # =============================================================================
@@ -231,11 +302,35 @@ def create_inbound(
     payload: IngredientEntryCreate,
     session: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
+    request: Request = None,
 ) -> IngredientEntryOut:
-    ingredient = _get_ingredient_or_404(session, payload.ingredient_id)
+    ingredient = _lock_ingredient(session, payload.ingredient_id)
+    location = location_for(payload.location_id)
+    data = payload.model_dump()
+    previous_prices: list[Decimal] = []
+    now = datetime.now(timezone.utc)
+    if payload.supplier_id is not None:
+        supplier = get_supplier_by_id(payload.supplier_id)
+        if supplier is None or supplier.get("status") != "active":
+            raise HTTPException(status_code=400, detail="SUPPLIER_UNAVAILABLE")
+        if payload.currency != location["currency"] or supplier.get("currency") != payload.currency:
+            raise HTTPException(status_code=422, detail="LOCATION_CURRENCY_MISMATCH")
+        if len(money(Decimal(str(payload.quantity)) * payload.unit_price)) > 24:
+            raise HTTPException(status_code=422, detail="ORDER_AMOUNT_TOO_LARGE")
+        data["supplier_name"] = str(supplier["name"])
+        country_locations = [item["id"] for item in locations() if item["country"] == location["country"]]
+        previous_prices = list(session.exec(select(IngredientEntry.unit_price).where(
+            IngredientEntry.ingredient_id == payload.ingredient_id,
+            IngredientEntry.supplier_id == payload.supplier_id,
+            IngredientEntry.currency == payload.currency,
+            IngredientEntry.location_id.in_(country_locations),
+            IngredientEntry.unit_price > 0,
+            IngredientEntry.created_at >= now - timedelta(days=30),
+            IngredientEntry.created_at < now,
+        ).order_by(IngredientEntry.created_at, IngredientEntry.id)).all())
 
     entry = IngredientEntry(
-        **payload.model_dump(),
+        **data, created_at=now,
         user_uuid=str(current_user["id"]),  # del JWT, no del body
     )
     session.add(entry)
@@ -246,7 +341,27 @@ def create_inbound(
     cache.invalidate("inventory")
     _logger.info("Caché de inventario invalidada tras entrada de stock (insumo %s)", payload.ingredient_id)
 
-    return IngredientEntryOut(**entry.model_dump(), ingredient_name=ingredient.name)
+    context = event_context(request, str(current_user["id"]))
+    events = []
+    issues = []
+    if entry.supplier_id is None or entry.unit_price is None or entry.currency is None:
+        issues.append("LEGACY_PURCHASE_WITHOUT_COST")
+    elif canonical_unit(ingredient.unit) is None:
+        issues.append("UNSUPPORTED_UNIT")
+    else:
+        base = inventory_base(ingredient, location, entry.quantity)
+        purchase = {**base, "order_id": str(entry.id), "supplier_id": str(entry.supplier_id),
+                    "unit_price": money(entry.unit_price), "total_amount": money(Decimal(str(entry.quantity)) * entry.unit_price)}
+        events.append(make_event("inbound_order_created", purchase, context, entry.created_at))
+        variance = price_variance(entry.unit_price, previous_prices, PRICE_VARIANCE_THRESHOLD)
+        if variance:
+            events.append(make_event("ingredient_price_variance_detected", {
+                **base, "order_id": str(entry.id), "supplier_id": str(entry.supplier_id), **variance,
+            }, context, entry.created_at))
+        elif len(previous_prices) < 3:
+            issues.append("INSUFFICIENT_PRICE_HISTORY")
+    events.extend(workflow_completed(context, "inventory_inbound", entry.id, entry.created_at))
+    return IngredientEntryOut(**entry.model_dump(), ingredient_name=ingredient.name, telemetry_events=events, telemetry_issues=issues)
 
 
 # =============================================================================
@@ -275,21 +390,32 @@ def create_outbound(
     payload: IngredientExitCreate,
     session: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
+    request: Request = None,
 ) -> IngredientExitOut:
-    ingredient = _get_ingredient_or_404(session, payload.ingredient_id)
+    ingredient = _lock_ingredient(session, payload.ingredient_id)
 
-    available = _calculate_stock(session, payload.ingredient_id)
+    available = _calculate_stock(session, payload.ingredient_id, payload.location_id)
     if payload.quantity > available:
+        ctx = event_context(request, str(current_user["id"]))
+        location = location_for(payload.location_id)
+        event = make_event("inventory_order_rejected", {
+            "order_type": "outbound", "rejection_code": "INSUFFICIENT_STOCK",
+            "location_id": location["code"], "product_id": str(ingredient.id),
+        }, ctx)
         raise HTTPException(
             status_code=400,
-            detail=(
-                f"Insufficient stock for ingredient '{ingredient.name}'. "
-                f"Available: {available}, requested: {payload.quantity}."
-            ),
+            detail={"code": "INSUFFICIENT_STOCK", "telemetry_events": [event]},
         )
 
+    minimum = session.get(IngredientLocation, (payload.ingredient_id, payload.location_id))
+    if payload.minimum_stock is not None:
+        if minimum is None:
+            minimum = IngredientLocation(ingredient_id=payload.ingredient_id, location_id=payload.location_id, minimum_stock=payload.minimum_stock)
+        else:
+            minimum.minimum_stock = payload.minimum_stock
+        session.add(minimum)
     exit_ = IngredientExit(
-        **payload.model_dump(),
+        **payload.model_dump(exclude={"minimum_stock"}),
         user_uuid=str(current_user["id"]),
     )
     session.add(exit_)
@@ -300,7 +426,29 @@ def create_outbound(
     cache.invalidate("inventory")
     _logger.info("Caché de inventario invalidada tras salida de stock (insumo %s)", payload.ingredient_id)
 
-    return IngredientExitOut(**exit_.model_dump(), ingredient_name=ingredient.name)
+    context = event_context(request, str(current_user["id"]))
+    base = inventory_base(ingredient, location_for(exit_.location_id), exit_.quantity)
+    events = []
+    issues = []
+    if canonical_unit(ingredient.unit) is None:
+        issues.append("UNSUPPORTED_UNIT")
+    else:
+        if exit_.reason == "consumption":
+            events.append(make_event("outbound_order_created", {**base, "order_id": str(exit_.id), "reason": "consumption"}, context, exit_.created_at))
+        elif exit_.waste_reason:
+            events.append(make_event("stock_waste_registered", {**base, "order_id": str(exit_.id), "reason": exit_.waste_reason}, context, exit_.created_at))
+        else:
+            issues.append("LEGACY_WASTE_WITHOUT_CAUSE")
+        after = round(available - exit_.quantity, 10)
+        if minimum and available >= minimum.minimum_stock and after < minimum.minimum_stock:
+            events.append(make_event("stock_threshold_triggered", {
+                **base, "order_id": str(exit_.id), "stock_before": available,
+                "stock_after": after, "minimum_stock": minimum.minimum_stock,
+            }, context, exit_.created_at))
+        if minimum is None:
+            issues.append("LOCAL_MINIMUM_NOT_CONFIGURED")
+    events.extend(workflow_completed(context, "inventory_outbound", exit_.id, exit_.created_at))
+    return IngredientExitOut(**exit_.model_dump(), ingredient_name=ingredient.name, telemetry_events=events, telemetry_issues=issues)
 
 
 # =============================================================================

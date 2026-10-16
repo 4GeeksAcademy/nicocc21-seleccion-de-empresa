@@ -8,6 +8,7 @@
 
 import { usePathname } from "next/navigation";
 import AuthGuard from "@brasaland/ui-auth";
+import { TelemetryNavigation } from "../components/telemetry-provider";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
@@ -18,5 +19,5 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  return <AuthGuard>{children}</AuthGuard>;
+  return <AuthGuard><TelemetryNavigation />{children}</AuthGuard>;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useWorkflowTelemetry } from "../../components/use-workflow-telemetry";
 import {
   type IncidentCategory,
   type IncidentOrigin,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function IncidentForm({ onCreated }: Props) {
+  const workflow = useWorkflowTelemetry("incident_create");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export default function IncidentForm({ onCreated }: Props) {
     try {
       const res = await fetch("/api/incidents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...workflow.headers() },
         body: JSON.stringify(payload),
       });
 
@@ -88,6 +90,7 @@ export default function IncidentForm({ onCreated }: Props) {
         throw new Error(data.detail ?? "Error al crear la incidencia");
       }
 
+      workflow.finish();
       setSuccess(true);
       reset();
       onCreated();
@@ -101,14 +104,15 @@ export default function IncidentForm({ onCreated }: Props) {
   return (
     <div>
       <button
-        onClick={() => setOpen(!open)}
+        disabled={loading}
+        onClick={() => { if (open) workflow.cancel(); setOpen(!open); }}
         className="rounded-full bg-cyan-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-cyan-500"
       >
         {open ? "Cerrar formulario" : "+ Nueva incidencia"}
       </button>
 
       {open && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-xl border border-stone-700 bg-stone-900/80 p-5">
+        <form onSubmit={handleSubmit} onChangeCapture={() => workflow.changed()} className="mt-4 space-y-4 rounded-xl border border-stone-700 bg-stone-900/80 p-5">
           <h3 className="text-lg font-bold text-cyan-200">Registrar nueva incidencia</h3>
 
           {error && (
@@ -281,7 +285,8 @@ export default function IncidentForm({ onCreated }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              disabled={loading}
+              onClick={() => { workflow.cancel(); setOpen(false); }}
               className="rounded-full border border-stone-600 px-5 py-2 text-sm text-stone-300 transition hover:border-stone-400"
             >
               Cancelar

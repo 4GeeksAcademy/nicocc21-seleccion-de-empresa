@@ -22,3 +22,8 @@ DATABASE_URL=
 # === Seed de administrador ===
 SEED_ADMIN_EMAIL=admin@brasaland.com
 SEED_ADMIN_PASSWORD=Admin1234
+
+# === Telemetría (endpoint interno) ===
+# El backend usa esta URL para validar lotes entrantes.
+# Se expone en /telemetry/events bajo el router de telemetría.
+TELEMETRY_ENDPOINT=http://localhost:8000/telemetry/events

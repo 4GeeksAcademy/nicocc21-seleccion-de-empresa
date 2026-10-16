@@ -10,8 +10,10 @@ SUM(IngredientEntry.quantity) - SUM(IngredientExit.quantity).
 """
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import List, Optional
 
+from sqlalchemy import Numeric
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -58,6 +60,9 @@ class IngredientEntry(SQLModel, table=True):
     ingredient_id: int = Field(foreign_key="ingredients.id", index=True)
     quantity: float
     supplier_name: str
+    supplier_id: Optional[int] = Field(default=None, index=True)
+    unit_price: Optional[Decimal] = Field(default=None, sa_type=Numeric(22, 2))
+    currency: Optional[str] = None
     location_id: int
     created_at: datetime = Field(default_factory=_utc_now)
     user_uuid: str
@@ -74,8 +79,17 @@ class IngredientExit(SQLModel, table=True):
     ingredient_id: int = Field(foreign_key="ingredients.id", index=True)
     quantity: float
     reason: str
+    waste_reason: Optional[str] = None
     location_id: int
     created_at: datetime = Field(default_factory=_utc_now)
     user_uuid: str
 
     ingredient: Optional[Ingredient] = Relationship(back_populates="exits")
+
+
+class IngredientLocation(SQLModel, table=True):
+    __tablename__ = "ingredient_locations"
+
+    ingredient_id: int = Field(foreign_key="ingredients.id", primary_key=True)
+    location_id: int = Field(primary_key=True)
+    minimum_stock: float = Field(default=0.0, ge=0)

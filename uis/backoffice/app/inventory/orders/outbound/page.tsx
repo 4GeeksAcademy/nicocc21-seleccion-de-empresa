@@ -1,20 +1,28 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { fetchProducts, fetchProduct, createOutboundOrder } from "../../lib";
-import type { Ingredient } from "../../types";
+import { useRouter, useSearchParams } from "next/navigation";
+import { fetchProducts, fetchProduct, fetchInventoryLocations, createOutboundOrder } from "../../lib";
+import type { Ingredient, InventoryLocation, IngredientExitCreate } from "../../types";
+import { useWorkflowTelemetry } from "../../../../components/use-workflow-telemetry";
 
 export default function OutboundOrderPage() {
+  const workflow = useWorkflowTelemetry("inventory_outbound");
+  const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedId = searchParams.get("product_id");
 
   const [products, setProducts] = useState<Ingredient[]>([]);
   const [ingredientId, setIngredientId] = useState("");
-  const [currentStock, setCurrentStock] = useState<number | null>(null);
+  const [localStock, setLocalStock] = useState<{ key: string; stock: number } | null>(null);
+  const [locations, setLocations] = useState<InventoryLocation[]>([]);
+  const [minimumStock, setMinimumStock] = useState("");
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState<"consumption" | "waste">("consumption");
+  const [wasteReason, setWasteReason] = useState<NonNullable<IngredientExitCreate["waste_reason"]> | "">("");
   const [locationId, setLocationId] = useState("1");
+  const stockKey = `${ingredientId}:${locationId}`;
+  const currentStock = localStock?.key === stockKey ? localStock.stock : null;
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -22,8 +30,9 @@ export default function OutboundOrderPage() {
 
   const loadProducts = useCallback(async () => {
     try {
-      const data = await fetchProducts();
+      const [data, locationData] = await Promise.all([fetchProducts(), fetchInventoryLocations()]);
       setProducts(data);
+      setLocations(locationData);
       if (preselectedId && data.some((p) => String(p.id) === preselectedId)) {
         setIngredientId(preselectedId);
       }
@@ -36,22 +45,18 @@ export default function OutboundOrderPage() {
     void loadProducts();
   }, [loadProducts]);
 
-  // Actualizar stock disponible reactivamente al cambiar el producto
   useEffect(() => {
-    if (!ingredientId) {
-      setCurrentStock(null);
-      return;
-    }
-    const id = Number(ingredientId);
-    // Primero buscar en la lista ya cargada
-    const local = products.find((p) => p.id === id);
-    if (local) {
-      setCurrentStock(local.current_stock);
-      return;
-    }
-    // Si no está, fetch individual
-    void fetchProduct(id).then((p) => setCurrentStock(p.current_stock));
-  }, [ingredientId, products]);
+    if (!ingredientId) return;
+    let cancelled = false;
+    void fetchProduct(Number(ingredientId), Number(locationId)).then((product) => {
+      if (cancelled) return;
+      setLocalStock({ key: `${ingredientId}:${locationId}`, stock: product.current_stock });
+      setMinimumStock(product.location_minimum_stock == null ? "" : String(product.location_minimum_stock));
+    }).catch(() => {
+      if (!cancelled) setError("No se pudo consultar el stock del local.");
+    });
+    return () => { cancelled = true; };
+  }, [ingredientId, locationId]);
 
   const selectedProduct = useMemo(
     () => products.find((p) => String(p.id) === ingredientId),
@@ -67,7 +72,7 @@ export default function OutboundOrderPage() {
     setSuccess(null);
     setError(null);
 
-    if (!quantity || parsedQty <= 0) {
+    if (!quantity || !Number.isFinite(parsedQty) || parsedQty <= 0) {
       setError("La cantidad debe ser un número positivo.");
       return;
     }
@@ -77,6 +82,14 @@ export default function OutboundOrderPage() {
       setError("El local debe estar entre 1 y 14.");
       return;
     }
+    if (!minimumStock || !Number.isFinite(Number(minimumStock)) || Number(minimumStock) < 0) {
+      setError("Indica el minimo de stock para este producto y local.");
+      return;
+    }
+    if (reason === "waste" && !wasteReason) {
+      setError("Selecciona la causa de la merma.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -84,9 +97,13 @@ export default function OutboundOrderPage() {
         ingredient_id: Number(ingredientId),
         quantity: parsedQty,
         reason,
+        waste_reason: reason === "waste" && wasteReason ? wasteReason : undefined,
+        minimum_stock: Number(minimumStock),
         location_id: parsedLocation,
-      });
+      }, workflow.headers());
 
+      workflow.finish();
+      setLocalStock((previous) => previous?.key === stockKey ? { ...previous, stock: previous.stock - result.quantity } : previous);
       setSuccess(
         `Salida registrada: ${result.quantity} ${selectedProduct?.unit ?? ""} de ${result.ingredient_name} (${result.reason}).`,
       );
@@ -122,6 +139,7 @@ export default function OutboundOrderPage() {
 
       <form
         onSubmit={handleSubmit}
+        onChangeCapture={() => workflow.changed()}
         className="rounded-xl border border-stone-700 bg-stone-950/60 p-6 space-y-4"
       >
         <label className="block text-sm">
@@ -189,25 +207,58 @@ export default function OutboundOrderPage() {
           </select>
         </label>
 
+        {reason === "waste" && (
+          <label className="block text-sm">
+            <span className="mb-1 block text-stone-300">Causa de la merma</span>
+            <select
+              required value={wasteReason}
+              onChange={(event) => setWasteReason(event.target.value as typeof wasteReason)}
+              className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
+            >
+              <option value="">Seleccionar causa</option>
+              <option value="expired">Vencimiento</option>
+              <option value="kitchen_error">Error de cocina</option>
+              <option value="theft_suspected">Sospecha de robo</option>
+            </select>
+          </label>
+        )}
+
         <label className="block text-sm">
-          <span className="mb-1 block text-stone-300">Local (1-14)</span>
+          <span className="mb-1 block text-stone-300">Minimo del producto en este local</span>
           <input
-            required
-            type="number"
-            min="1"
-            max="14"
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
+            required type="number" min="0" step="0.01" disabled={currentStock === null}
+            value={currentStock === null ? "" : minimumStock}
+            onChange={(event) => setMinimumStock(event.target.value)}
             className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
           />
         </label>
 
+        <label className="block text-sm">
+          <span className="mb-1 block text-stone-300">Local</span>
+          <select
+            required
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            className="w-full rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
+          >
+            {locations.map((location) => <option key={location.id} value={location.id}>{location.code} - {location.city}</option>)}
+          </select>
+        </label>
+
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || currentStock === null}
           className="w-full rounded-lg bg-amber-700 px-4 py-3 font-bold text-white hover:bg-amber-600 disabled:opacity-50"
         >
           {submitting ? "Registrando…" : "Registrar salida"}
+        </button>
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => { workflow.cancel(); router.push("/inventory/orders"); }}
+          className="w-full rounded-lg border border-stone-600 px-4 py-3 text-stone-200 hover:border-stone-400 disabled:opacity-50"
+        >
+          Cancelar
         </button>
       </form>
     </div>

@@ -130,6 +130,7 @@ class Token(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+    telemetry_events: list[dict[str, object]] = Field(default_factory=list)
 
 
 class UserMeProfile(BaseModel):

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { useWorkflowTelemetry } from "../../components/use-workflow-telemetry";
 
 type SupplierStatus = "active" | "suspended";
 type Country = "Colombia" | "USA";
@@ -105,6 +106,8 @@ export default function SuppliersDirectory({
 }: {
   initialSuppliers: Supplier[];
 }) {
+  const createWorkflow = useWorkflowTelemetry("supplier_create");
+  const rateWorkflow = useWorkflowTelemetry("supplier_rate_update");
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -208,6 +211,7 @@ export default function SuppliersDirectory({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...createWorkflow.headers(),
         },
         body: JSON.stringify(payload),
       });
@@ -219,6 +223,7 @@ export default function SuppliersDirectory({
         return;
       }
 
+      createWorkflow.finish();
       setForm({
         ...initialFormState,
         country: payload.country,
@@ -238,6 +243,7 @@ export default function SuppliersDirectory({
   async function onUpdateRate(supplier: Supplier) {
     setError(null);
     setSuccess(null);
+    rateWorkflow.finish();
     setEditingRate({ supplier, value: String(supplier.rate_per_unit) });
   }
 
@@ -259,6 +265,7 @@ export default function SuppliersDirectory({
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          ...rateWorkflow.headers(),
         },
         body: JSON.stringify({ rate_per_unit: parsed }),
       });
@@ -269,6 +276,7 @@ export default function SuppliersDirectory({
         return;
       }
 
+      rateWorkflow.finish();
       setSuccess("Tarifa actualizada.");
       await loadSuppliers();
     } catch (err: unknown) {
@@ -391,7 +399,7 @@ export default function SuppliersDirectory({
       <section className="rounded-xl border border-stone-700 bg-stone-950/60 p-4">
         <h3 className="text-lg font-bold text-emerald-200">Registrar proveedor</h3>
 
-        <form onSubmit={onCreateSupplier} className="mt-3 space-y-3">
+        <form onSubmit={onCreateSupplier} onChangeCapture={() => createWorkflow.changed()} className="mt-3 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="text-sm">
               <span className="mb-1 block text-stone-300">Nombre</span>
@@ -519,6 +527,14 @@ export default function SuppliersDirectory({
           >
             {creating ? "Guardando..." : "Crear proveedor"}
           </button>
+          <button
+            type="button"
+            disabled={creating}
+            onClick={() => { createWorkflow.cancel(); setForm(initialFormState); }}
+            className="ml-3 rounded-full border border-stone-600 px-5 py-2 text-sm text-stone-300 disabled:opacity-60"
+          >
+            Cancelar
+          </button>
         </form>
       </section>
 
@@ -546,10 +562,11 @@ export default function SuppliersDirectory({
               min="0.0000001"
               step="0.01"
               value={editingRate.value}
-              onChange={(e) => setEditingRate((prev) => prev ? { ...prev, value: e.target.value } : null)}
+              disabled={creating}
+              onChange={(e) => { rateWorkflow.changed(); setEditingRate((prev) => prev ? { ...prev, value: e.target.value } : null); }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") void onSubmitRate();
-                if (e.key === "Escape") setEditingRate(null);
+                if (e.key === "Escape") { rateWorkflow.cancel(); setEditingRate(null); }
               }}
               className="w-48 rounded-lg border border-stone-600 bg-stone-950 px-3 py-2 text-stone-100"
             />
@@ -563,7 +580,8 @@ export default function SuppliersDirectory({
             </button>
             <button
               type="button"
-              onClick={() => setEditingRate(null)}
+              disabled={creating}
+              onClick={() => { rateWorkflow.cancel(); setEditingRate(null); }}
               className="rounded-full border border-stone-500 px-4 py-2 text-sm font-bold text-stone-200 transition hover:bg-stone-800"
             >
               Cancelar

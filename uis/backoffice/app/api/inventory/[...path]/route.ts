@@ -7,6 +7,12 @@ function forwardHeaders(request: Request): Record<string, string> {
   const headers: Record<string, string> = {};
   const auth = request.headers.get("Authorization");
   if (auth) headers["Authorization"] = auth;
+  for (const name of ["X-Request-ID", "X-Workflow-ID", "X-Telemetry-Session-ID"]) {
+    const value = request.headers.get(name);
+    if (value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+      headers[name] = value;
+    }
+  }
   return headers;
 }
 
@@ -39,6 +45,20 @@ export async function POST(
   return proxyFetch(request, upstreamPath, "POST", payload);
 }
 
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ path: string[] }> }
+) {
+  const { path } = await context.params;
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "JSON invalido" }, { status: 400 });
+  }
+  return proxyFetch(request, `/inventory/${path.join("/")}`, "PATCH", payload);
+}
+
 async function proxyFetch(
   request: Request,
   upstreamPath: string,
@@ -47,6 +67,7 @@ async function proxyFetch(
 ): Promise<NextResponse> {
   try {
     const upstreamUrl = new URL(upstreamPath, BACKEND_BASE);
+    if (method === "GET") upstreamUrl.search = new URL(request.url).search;
     const options: RequestInit = {
       method,
       headers: {

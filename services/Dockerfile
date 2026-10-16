@@ -21,6 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY services/brasaland_api/ ./services/brasaland_api/
 COPY services/__init__.py ./services/__init__.py
 COPY packages/ ./packages/
+COPY docs/telemetry/event-schemas.json ./docs/telemetry/event-schemas.json
+COPY data/locations.json ./data/locations.json
 
 # Script de arranque
 COPY services/start.sh /start.sh

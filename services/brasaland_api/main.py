@@ -3,10 +3,13 @@ from __future__ import annotations
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Cargar variables de entorno desde .env (antes de importar módulos que las usan)
 _env_path = Path(__file__).resolve().parent / ".env"
@@ -15,11 +18,13 @@ if _env_path.exists():
 
 from services.brasaland_api.incidents_seed import run_incidents_seed
 from services.brasaland_api.inventory_seed import run_inventory_seed
+from services.brasaland_api.inventory_telemetry import event_context, make_event, route_template
 from services.brasaland_api.routes.auth import router as auth_router
 from services.brasaland_api.routes.incidents import router as incidents_router
 from services.brasaland_api.routes.inventory import router as inventory_router
 from services.brasaland_api.routes.profiles import router as profiles_router
 from services.brasaland_api.routes.suppliers import router as suppliers_router
+from services.brasaland_api.routes.telemetry import router as telemetry_router
 from services.brasaland_api.routes.users import router as users_router
 from services.brasaland_api.seed import run_seed
 
@@ -59,9 +64,9 @@ app.add_middleware(
 )
 
 
-# ─── Middleware de timing (caching diagnostics) ────────────────────────
+# ─── Middleware de timing y telemetría ─────────────────────────────────
 @app.middleware("http")
-async def timing_middleware(request: Request, call_next):
+async def telemetry_middleware(request: Request, call_next):
     start = time.perf_counter()
     response = await call_next(request)
     duration = (time.perf_counter() - start) * 1000  # ms
@@ -73,7 +78,39 @@ async def timing_middleware(request: Request, call_next):
         response.status_code,
         duration,
     )
+
+    # api_request_completed — excluir propio endpoint de telemetría
+    if not request.url.path.startswith("/telemetry/"):
+        ctx = event_context(request, None)
+        event = make_event("api_request_completed", {
+            "route_template": route_template(str(request.url.path)),
+            "method": request.method, "status_code": response.status_code,
+            "duration_ms": duration, "source": "backend",
+        }, ctx)
+        # Adjuntar el evento como encabezado de depuración (el frontend
+        # puede recogerlo desde responses 2xx/4xx si el cliente lo soporta)
+        if hasattr(response, "headers"):
+            response.headers["X-Telemetry-Event"] = event["eventId"]
     return response
+
+
+# ─── Exception handlers de telemetría ─────────────────────────────────
+
+@app.exception_handler(RequestValidationError)
+async def validation_failed_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    ctx = event_context(request, None)
+    errors = exc.errors() if hasattr(exc, "errors") else []
+    field_names = list({error.get("loc", ["body"])[-1] for error in errors})
+    validation_codes = list({error.get("type", "INVALID_VALUE") for error in errors})
+    event = make_event("validation_failed", {
+        "route_template": route_template(str(request.url.path)),
+        "field_names": field_names or ["body"],
+        "validation_codes": validation_codes or ["INVALID_VALUE"],
+    }, ctx)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"detail": {"code": "VALIDATION_ERROR", "telemetry_events": [event]}},
+    )
 
 
 @app.get("/")
@@ -87,3 +124,4 @@ app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
+app.include_router(telemetry_router)

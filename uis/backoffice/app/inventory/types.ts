@@ -1,4 +1,6 @@
 /** Tipo de categoría de ingrediente, alineado con el contexto de Hito 5. */
+import type { ConfirmedTelemetryEvent } from "../telemetry";
+
 export type CategoriaInsumo =
   | "meat"
   | "produce"
@@ -30,6 +32,8 @@ export interface Ingredient {
   dias_vida_util: number;
   frecuencia_rotacion_dias: number;
   current_stock: number; // calculado dinámicamente (no almacenado)
+  location_id?: number | null;
+  location_minimum_stock?: number | null;
 }
 
 export interface IngredientCreate {
@@ -49,7 +53,10 @@ export interface IngredientCreate {
 export interface IngredientEntryCreate {
   ingredient_id: number;
   quantity: number;
-  supplier_name: string;
+  supplier_name?: string;
+  supplier_id?: number;
+  unit_price?: string;
+  currency?: "COP" | "USD";
   location_id: number;
 }
 
@@ -63,6 +70,8 @@ export interface IngredientEntryOut {
   created_at: string;
   user_uuid: string;
   type: "inbound";
+  telemetry_events?: ConfirmedTelemetryEvent[];
+  telemetry_issues?: string[];
 }
 
 // ─── IngredientExit (outbound) ──────────────────────────────────
@@ -71,6 +80,8 @@ export interface IngredientExitCreate {
   ingredient_id: number;
   quantity: number;
   reason: RazonSalida;
+  waste_reason?: "expired" | "kitchen_error" | "theft_suspected";
+  minimum_stock?: number;
   location_id: number;
 }
 
@@ -84,6 +95,8 @@ export interface IngredientExitOut {
   created_at: string;
   user_uuid: string;
   type: "outbound";
+  telemetry_events?: ConfirmedTelemetryEvent[];
+  telemetry_issues?: string[];
 }
 
 // ─── Orden combinada ────────────────────────────────────────────
@@ -94,5 +107,20 @@ export type InventoryOrder = IngredientEntryOut | IngredientExitOut;
 
 export interface ApiError {
   error?: string;
-  detail?: string;
+  detail?: string | { code?: string; telemetry_events?: ConfirmedTelemetryEvent[] };
+}
+
+export interface InventoryLocation {
+  id: number;
+  code: string;
+  city: string;
+  country: "CO" | "US";
+  currency: "COP" | "USD";
+}
+
+export interface InventorySupplier {
+  id: number;
+  name: string;
+  currency: "COP" | "USD";
+  status: "active" | "suspended";
 }

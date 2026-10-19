@@ -12,17 +12,23 @@ def test_login_returns_bearer_token(user: dict[str, object]) -> None:
 
     assert result.token_type == "bearer"
     assert auth.decode_token(result.access_token) == user["id"]
+    assert len(result.telemetry_events) == 1
+    assert result.telemetry_events[0]["event_type"] == "login_succeeded"
 
 
 def test_login_rejects_wrong_credentials() -> None:
     with pytest.raises(HTTPException) as error:
         login(SimpleNamespace(username="missing@example.com", password="wrong"))
 
-    assert error.value.detail == "Email o contraseña incorrectos"
+    assert isinstance(error.value.detail, dict)
+    assert error.value.detail["code"] == "INVALID_CREDENTIALS"
+    assert len(error.value.detail["telemetry_events"]) == 1
+    assert error.value.detail["telemetry_events"][0]["event_type"] == "login_failed"
 
 
 def test_login_rejects_empty_password(user: dict[str, object]) -> None:
     with pytest.raises(HTTPException) as error:
         login(SimpleNamespace(username=user["email"], password=""))
 
-    assert error.value.detail == "Email o contraseña incorrectos"
+    assert isinstance(error.value.detail, dict)
+    assert error.value.detail["code"] == "INVALID_CREDENTIALS"

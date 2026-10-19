@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from services.brasaland_api.auth import (
@@ -28,6 +28,7 @@ from services.brasaland_api.database import (
     utc_now,
 )
 from services.brasaland_api.email_service import send_reset_email
+from services.brasaland_api.inventory_telemetry import event_context, make_event
 from services.brasaland_api.models import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -90,7 +91,7 @@ def register(payload: UserCreate) -> UserRegisteredOut:
 
 
 @router.post("/login", response_model=Token)
-def login(form: OAuth2PasswordRequestForm = Depends()) -> Token:
+def login(form: OAuth2PasswordRequestForm = Depends(), request: Request = None) -> Token:
     """Validar credenciales y devolver JWT.
 
     Envia en el body:  username={email}  password={contraseña}
@@ -98,12 +99,18 @@ def login(form: OAuth2PasswordRequestForm = Depends()) -> Token:
     """
     user = get_user_by_email(form.username)
     if user is None or not verify_password(form.password, user["password_hash"]):
+        ctx = event_context(request, None)
+        events = [make_event("login_failed", {
+            "failure_code": "INVALID_CREDENTIALS", "auth_method": "password",
+        }, ctx)]
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email o contraseña incorrectos",
+            detail={"code": "INVALID_CREDENTIALS", "telemetry_events": events},
         )
     token = create_access_token(user["id"])
-    return Token(access_token=token)
+    ctx = event_context(request, str(user["id"]))
+    events = [make_event("login_succeeded", {"auth_method": "password"}, ctx)]
+    return Token(access_token=token, telemetry_events=events)
 
 
 @router.get("/me", response_model=UserMeOut)

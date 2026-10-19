@@ -1,0 +1,16 @@
+[
+  {"id":1,"code":"L01","city":"Bogota","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":2,"code":"L02","city":"Medellin","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":3,"code":"L03","city":"Cali","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":4,"code":"L04","city":"Barranquilla","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":5,"code":"L05","city":"Cartagena","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":6,"code":"L06","city":"Bucaramanga","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":7,"code":"L07","city":"Pereira","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":8,"code":"L08","city":"Miami","country":"US","currency":"USD","timezone":"America/New_York"},
+  {"id":9,"code":"L09","city":"Orlando","country":"US","currency":"USD","timezone":"America/New_York"},
+  {"id":10,"code":"L10","city":"Tampa","country":"US","currency":"USD","timezone":"America/New_York"},
+  {"id":11,"code":"L11","city":"Bogota","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":12,"code":"L12","city":"Medellin","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":13,"code":"L13","city":"Cali","country":"CO","currency":"COP","timezone":"America/Bogota"},
+  {"id":14,"code":"L14","city":"Miami","country":"US","currency":"USD","timezone":"America/New_York"}
+]

@@ -423,6 +423,11 @@ import os
 
 from sqlmodel import Session, SQLModel, create_engine
 
+# Importar modelos para que SQLModel los registre en metadata antes de create_all
+from services.brasaland_api.telemetry_models import (  # noqa: F401 — registro
+    TelemetryEventRecord,
+)
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError(
@@ -435,7 +440,7 @@ engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
 def create_db_and_tables() -> None:
-    """Crea las tablas de inventario en Supabase si no existen."""
+    """Crea las tablas de inventario y telemetría en Supabase si no existen."""
     SQLModel.metadata.create_all(engine)
 
 

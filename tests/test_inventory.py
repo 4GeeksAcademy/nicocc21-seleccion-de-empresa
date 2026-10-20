@@ -143,10 +143,8 @@ def test_outbound_decreases_stock_and_rejects_insufficient_quantity(
         )
 
     assert error.value.status_code == 400
-    assert error.value.detail == (
-        "Insufficient stock for ingredient 'Falda de ternera'. "
-        "Available: 15.0, requested: 16.0."
-    )
+    assert error.value.detail["code"] == "INSUFFICIENT_STOCK"
+    assert "telemetry_events" in error.value.detail
 
 
 def test_list_products_calculates_stock_and_applies_filters(
@@ -409,7 +407,7 @@ def test_additive_migration_preserves_rows_and_is_idempotent() -> None:
         ).model_dump())
         connection.execute(metadata.tables["ingredient_entries"].insert(), {
             "id": 1, "ingredient_id": 1, "quantity": 10, "supplier_name": "Historico",
-            "location_id": 1, "created_at": __import__("datetime").datetime.now(), "user_uuid": "42",
+            "location_id": 1, "created_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc), "user_uuid": "42",
         })
     assert migrate_inventory_telemetry(engine)
     assert "unit_price" not in {column["name"] for column in inspect(engine).get_columns("ingredient_entries")}

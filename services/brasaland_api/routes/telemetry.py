@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import ValidationError
+from sqlalchemy import insert
+from sqlmodel import Session
 
+from services.brasaland_api.database import get_db
+from services.brasaland_api.inventory_models import TelemetryEventRecord
 from services.brasaland_api.telemetry import (
     MAX_BATCH_BYTES,
+    MAX_BATCH_EVENTS,
     TelemetryEvent,
+    event_validator,
     parse_batch,
-    valid_batch_size,
 )
 
 _logger = logging.getLogger(__name__)
@@ -17,10 +24,10 @@ router = APIRouter(prefix="/telemetry", tags=["Telemetry"])
 
 @router.post(
     "/events",
-    summary="Validar un lote de telemetria sin persistencia",
+    summary="Validar y almacenar un lote de telemetria",
     description=(
-        "Stub: valida entre 1 y 20 eventos contra el contrato 1.0.0, "
-        "con limite de 64 KiB. No almacena eventos ni acredita su autenticidad."
+        "Valida individualmente hasta 20 eventos contra el contrato 1.0.0 y "
+        "persiste los validos en una sola transaccion. Limite de 64 KiB."
     ),
     responses={
         400: {"description": "JSON invalido"},
@@ -29,7 +36,7 @@ router = APIRouter(prefix="/telemetry", tags=["Telemetry"])
         422: {"description": "Lote o evento incompatible con el contrato"},
     },
 )
-async def receive_events(request: Request) -> dict[str, int]:
+async def receive_events(request: Request, session: Session = Depends(get_db)) -> dict[str, int]:
     media_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     if media_type != "application/json":
         raise HTTPException(status_code=415, detail="JSON_CONTENT_TYPE_REQUIRED")
@@ -45,13 +52,52 @@ async def receive_events(request: Request) -> dict[str, int]:
     except (ValueError, RecursionError):
         raise HTTPException(status_code=400, detail="INVALID_JSON") from None
 
-    received = valid_batch_size(payload)
-    if received is None:
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"events"}
+        or not isinstance(payload["events"], list)
+        or len(payload["events"]) > MAX_BATCH_EVENTS
+    ):
         raise HTTPException(status_code=422, detail="INVALID_TELEMETRY_BATCH")
 
     events = payload["events"]
-    _logger.info("Telemetría recibida: %d eventos", received)
-    for event in events:
-        _logger.info("  → %s | %s", event["event_type"], event["eventId"])
+    records: list[TelemetryEventRecord] = []
+    rejected = 0
+    validator = event_validator()
+    for raw_event in events:
+        try:
+            if not validator.is_valid(raw_event):
+                raise ValueError("Evento incompatible con el esquema")
+            event = TelemetryEvent.model_validate(raw_event)
+        except (ValidationError, TypeError, ValueError):
+            rejected += 1
+            continue
 
-    return {"received": received}
+        records.append(
+            TelemetryEventRecord(
+                event_id=event.eventId,
+                timestamp=datetime.fromisoformat(event.timestamp.replace("Z", "+00:00")),
+                session_id=event.sessionId,
+                user_id=event.userId,
+                event_type=event.event_type,
+                schema_version=event.schemaVersion,
+                request_id=event.requestId,
+                service="brasaland-api",
+                tags=event.properties,
+            )
+        )
+
+    if records:
+        try:
+            session.execute(insert(TelemetryEventRecord), [record.model_dump() for record in records])
+            session.commit()
+        except Exception:
+            session.rollback()
+            _logger.exception("No se pudo persistir el lote de telemetría")
+            raise HTTPException(status_code=503, detail="TELEMETRY_STORAGE_UNAVAILABLE") from None
+
+    _logger.info(
+        "Lote de telemetría procesado: recibidos=%d almacenados=%d rechazados=%d",
+        len(events), len(records), rejected,
+    )
+    return {"received": len(events), "stored": len(records), "rejected": rejected}

@@ -14,3 +14,4 @@ Requires-Dist: python-multipart<1.0.0,>=0.0.9
 Requires-Dist: python-dotenv<2.0.0,>=1.0.0
 Requires-Dist: sqlmodel<1.0.0,>=0.0.22
 Requires-Dist: psycopg2-binary<3.0.0,>=2.9.9
+Requires-Dist: jsonschema[format-nongpl]<5.0.0,>=4.23.0

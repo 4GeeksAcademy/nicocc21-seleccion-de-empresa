@@ -1,6 +1,6 @@
 """Modelo ORM de telemetría (SQLModel + Supabase/PostgreSQL).
 
-Sin ``from __future__ import annotations``: SQLModel necesita las anotaciones reales.
+Sin `from __future__ import annotations`: SQLModel necesita las anotaciones reales.
 """
 
 from datetime import datetime, timezone
@@ -16,7 +16,7 @@ def _utc_now() -> datetime:
 
 
 class TelemetryEventRecord(SQLModel, table=True):
-    """Evento válido del contrato 1.0.0; ``event_id`` único evita duplicados en reintentos."""
+    """Evento válido del contrato 1.0.0; `event_id` único evita duplicados en reintentos."""
 
     __tablename__ = "telemetry_events"
 

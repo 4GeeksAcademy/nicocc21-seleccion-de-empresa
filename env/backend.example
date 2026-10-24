@@ -1,12 +1,12 @@
 # ──────────────────────────────────────────────
 # Brasaland API — Backend (FastAPI + TinyDB + PostgreSQL)
 # ──────────────────────────────────────────────
-# Copia este archivo como backend.env en la raíz del proyecto
-# o en services/brasaland_api/.env según tu flujo de trabajo.
+# Copia este archivo como services/brasaland_api/.env
 # NUNCA subas .env al repositorio.
 # ──────────────────────────────────────────────
 
 # === JWT (autenticación) ===
+# Genera uno con: python -c "import secrets; print(secrets.token_urlsafe(48))"
 JWT_SECRET_KEY=
 JWT_EXPIRE_MINUTES=60
 RESET_TOKEN_EXPIRE_MINUTES=15
@@ -17,11 +17,15 @@ RESEND_API_KEY=
 FRONTEND_URL=http://localhost:3000
 
 # === PostgreSQL (inventario — Hito 5) ===
+# Formato: postgresql+psycopg2://USUARIO:CONTRASENA@HOST:PUERTO/BASE_DE_DATOS
+# El prefijo +psycopg2 es obligatorio: sin él SQLAlchemy 2.x busca el driver psycopg v3.
+# Si la contraseña tiene caracteres especiales, codifícala (URL-encode).
 DATABASE_URL=
 
 # === Seed de administrador ===
 SEED_ADMIN_EMAIL=admin@brasaland.com
-SEED_ADMIN_PASSWORD=Admin1234
+# Define una contraseña propia. Si se omite, el seed usa una por defecto solo apta para desarrollo local.
+# SEED_ADMIN_PASSWORD=
 
 # === Telemetría (endpoint interno) ===
 # El backend usa esta URL para validar lotes entrantes.

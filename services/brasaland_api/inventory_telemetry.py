@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
@@ -100,7 +101,9 @@ def route_template(path: str) -> str:
             result.append("{id}")
         else:
             result.append(part)
-    return "/" + "/".join(result) if result else "/"
+    template = "/" + "/".join(result) if result else "/"
+    # El esquema solo admite [A-Za-z0-9_{}/-]; lo demás (p. ej. /favicon.ico) se agrupa.
+    return template if re.fullmatch(r"/[A-Za-z0-9_{}/-]*", template) and len(template) <= 160 else "/unmatched"
 
 
 def make_event(event_type: str, properties: dict[str, object], context: EventContext, occurred_at: datetime | None = None) -> dict[str, object]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -100,8 +101,15 @@ async def telemetry_middleware(request: Request, call_next):
 async def validation_failed_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     ctx = event_context(request, None)
     errors = exc.errors() if hasattr(exc, "errors") else []
-    field_names = list({error.get("loc", ["body"])[-1] for error in errors})
-    validation_codes = list({error.get("type", "INVALID_VALUE") for error in errors})
+    # El esquema exige slugs en minúscula para campos y códigos en MAYÚSCULA.
+    field_names = sorted({
+        name for name in (re.sub(r"[^a-z0-9_]", "_", str(error.get("loc", ("body",))[-1]).lower()) for error in errors)
+        if re.fullmatch(r"[a-z][a-z0-9_]{0,63}", name)
+    })
+    validation_codes = sorted({
+        code for code in (re.sub(r"[^A-Z0-9_]", "_", str(error.get("type", "INVALID_VALUE")).upper()) for error in errors)
+        if re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", code)
+    })
     event = make_event("validation_failed", {
         "route_template": route_template(str(request.url.path)),
         "field_names": field_names or ["body"],

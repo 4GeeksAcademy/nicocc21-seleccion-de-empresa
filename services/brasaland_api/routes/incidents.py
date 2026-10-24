@@ -25,10 +25,10 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 _logger = logging.getLogger(__name__)
 
 
-@router.get("/summary", response_model=dict)
+@router.get("/summary", response_model=IncidentsSummaryOut)
 @cached(ttl_seconds=30, prefix="incidents")
-def get_summary():
-    return get_incidents_summary()
+def get_summary() -> IncidentsSummaryOut:
+    return IncidentsSummaryOut(**get_incidents_summary())
 
 
 @router.get("", response_model=list[IncidentOut])

@@ -127,14 +127,14 @@ Los importes se leen como decimales exactos, nunca como coma flotante.
 
 ### Brecha de esquema: costo de la merma
 
-`stock_waste_registered` hoy no trae ningún campo de costo. Se propone un **campo aditivo** en ese evento obligatorio, sin crear un evento nuevo ni tocar el reporte técnico:
+`stock_waste_registered` incluye ahora el costo de la merma mediante dos campos aditivos. `unit_price` es el promedio ponderado de las compras anteriores del mismo ingrediente en ese local, y `total_amount` es la cantidad mermada multiplicada por ese precio.
 
 | Evento | Campo | Definición |
 |---|---|---|
 | `stock_waste_registered` | `unit_price` | costo por unidad, mismo formato que en `inbound_order_created` |
 | `stock_waste_registered` | `total_amount` | `quantity` por `unit_price`, redondeado a dos decimales |
 
-Los eventos de merma anteriores a la extensión no tienen costo. El pipeline los descarta con el motivo `waste_cost_missing` y los cuenta en el log de la corrida.
+Los eventos de merma anteriores a la extensión no tienen costo. El pipeline los descarta con el motivo `missing_cost` y los cuenta en el log de la corrida.
 
 ### Cadencia
 
@@ -387,10 +387,4 @@ Los eventos de negocio de este pipeline viajan por esa cola. Quien debe asumir e
 
 ### Decisiones abiertas
 
-1. Aprobar el campo aditivo de costo en `stock_waste_registered` (sección 4).
-2. Escribir las 14 filas con ceros cuando un local no tuvo actividad (pregunta 4).
-3. Hora exacta del schedule semanal.
-4. Formato de `location_id`: `L01`–`L14` frente al ejemplo del BRIEFING.
-5. Cuántas semanas hacia atrás recalcular por eventos tardíos (se propone 1).
-6. Prefect no figura en `pyproject.toml`; añadirlo corresponde a la fase de implementación.
-7. Existe otra implementación de `TelemetryEventRecord` en la rama del PR #21; se reconciliará cuando el tutor lo revise.
+1. Existe otra implementación de `TelemetryEventRecord` en la rama del PR #21; se reconciliará cuando el tutor lo revise.

@@ -110,7 +110,9 @@
       "required": ["order_id", "reason"],
       "properties": {
         "order_id": { "$ref": "#/$defs/numericId", "description": "ID de la salida confirmada por merma." },
-        "reason": { "enum": ["expired", "kitchen_error", "theft_suspected"], "description": "Causa explícita: vencimiento, error de cocina o sospecha de robo; no inferir desde waste." }
+        "reason": { "enum": ["expired", "kitchen_error", "theft_suspected"], "description": "Causa explícita: vencimiento, error de cocina o sospecha de robo; no inferir desde waste." },
+        "unit_price": { "$ref": "#/$defs/positiveMoney", "description": "Costo unitario promedio ponderado de compras previas del ingrediente en el local." },
+        "total_amount": { "$ref": "#/$defs/money", "description": "quantity por unit_price, redondeado a dos decimales con HALF_UP." }
       }
     },
     "stockThreshold": {

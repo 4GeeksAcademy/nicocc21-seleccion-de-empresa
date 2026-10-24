@@ -27,6 +27,8 @@ from services.brasaland_api.routes.profiles import router as profiles_router
 from services.brasaland_api.routes.suppliers import router as suppliers_router
 from services.brasaland_api.routes.telemetry import router as telemetry_router
 from services.brasaland_api.routes.users import router as users_router
+from services.reporting.routes import router as reporting_router
+from data.pipelines.storage import ensure_reporting_tables
 from services.brasaland_api.seed import run_seed
 
 import logging
@@ -41,6 +43,7 @@ async def lifespan(_: FastAPI):
         run_seed(verbose=False)
         run_incidents_seed(verbose=False)
         run_inventory_seed(verbose=False)
+        ensure_reporting_tables()
     except Exception:
         _logger.exception("Error al ejecutar seed durante el inicio")
     yield
@@ -133,3 +136,4 @@ app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
 app.include_router(telemetry_router)
+app.include_router(reporting_router)

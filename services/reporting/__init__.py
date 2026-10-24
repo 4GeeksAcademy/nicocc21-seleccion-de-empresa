@@ -1,0 +1,1 @@
+"""Endpoints para reportes de negocio."""

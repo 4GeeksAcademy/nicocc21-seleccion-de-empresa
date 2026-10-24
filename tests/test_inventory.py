@@ -328,6 +328,31 @@ def test_waste_has_explicit_cause_and_is_not_consumption(inventory_session: Sess
     event_validator().validate(event)
 
 
+def test_waste_event_uses_weighted_historical_purchase_cost(
+    inventory_session: Session, priced_supplier: None
+) -> None:
+    product_id = create_test_product(inventory_session)
+    priced_purchase(inventory_session, product_id, "100.00", quantity=10)
+    priced_purchase(inventory_session, product_id, "120.00", quantity=5)
+
+    result = create_outbound(
+        IngredientExitCreate(
+            ingredient_id=product_id,
+            quantity=2,
+            reason="waste",
+            waste_reason="expired",
+            location_id=1,
+        ),
+        inventory_session,
+        {"id": 42},
+    )
+
+    properties = result.telemetry_events[0]["properties"]
+    assert properties["unit_price"] == "106.67"
+    assert properties["total_amount"] == "213.34"
+    event_validator().validate(result.telemetry_events[0])
+
+
 def test_local_stock_cannot_be_consumed_from_another_location(inventory_session: Session, priced_supplier: None) -> None:
     product_id = create_test_product(inventory_session)
     priced_purchase(inventory_session, product_id)

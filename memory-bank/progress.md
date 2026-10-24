@@ -11,6 +11,7 @@
 - Los entregables de diseño existen en `docs/telemetry/telemetry-plan.md` y `docs/telemetry/event-schemas.json`: 22 eventos, seis obligatorios y 16 oportunidades identificadas. No se ha instrumentado la aplicación.
 - La revisión del contrato Draft 2020-12 aceptó 31 casos válidos y rechazó 499 inválidos con fixtures sintéticas en memoria; no verifica el pipeline ni los datos reales. La publicación del PR sigue pendiente de aprobación.
 - Quedan por definir las correspondencias entre entidades, categorías e identificadores existentes y los exigidos por el contexto de telemetría.
+- Se añadió Prefect 3 (`prefect>=3.0.0,<4.0.0`) para orquestar el pipeline de desempeño de negocio; `uv.lock` está actualizado. La integración del flow está en desarrollo y no acredita un despliegue.
 
 ## Hito 1 — Web pública
 

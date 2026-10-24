@@ -40,7 +40,9 @@ def test_accepts_valid_batches(
     events = [{**section_event, "eventId": str(uuid4())} for _ in range(count)]
     response = telemetry_client.post("/telemetry/events", json={"events": events})
     assert response.status_code == 200
-    assert response.json() == {"received": count}
+    data = response.json()
+    assert data["received"] == count
+    assert data["persisted"] == count
 
 
 @pytest.mark.parametrize(

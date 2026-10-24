@@ -16,6 +16,7 @@ dependencies = [
     "sqlmodel>=0.0.22,<1.0.0",
     "psycopg2-binary>=2.9.9,<3.0.0",
     "jsonschema[format-nongpl]>=4.23.0,<5.0.0",
+    "pandas>=2.2.0,<3.0.0",
 ]
 
 [dependency-groups]

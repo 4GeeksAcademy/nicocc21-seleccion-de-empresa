@@ -10,18 +10,21 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from sqlmodel import Session, SQLModel
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import ValidationError
+from sqlalchemy import insert
+from sqlmodel import Session
 
-from services.brasaland_api.cache import cached
-from services.brasaland_api.database import engine
+from services.brasaland_api.database import get_db
+from services.brasaland_api.inventory_models import TelemetryEventRecord
 from services.brasaland_api.telemetry import (
     MAX_BATCH_BYTES,
+    MAX_BATCH_EVENTS,
     TelemetryEvent,
+    event_validator,
     parse_batch,
-    valid_batch_size,
 )
 from services.brasaland_api.telemetry_models import TelemetryEventRecord
 from services.telemetry.analysis import (
@@ -80,12 +83,10 @@ def _persist_events(events: list[dict]) -> int:
 
 @router.post(
     "/events",
-    summary="Validar y persistir un lote de telemetría",
+    summary="Validar y almacenar un lote de telemetria",
     description=(
-        "Valida entre 1 y 20 eventos contra el contrato 1.0.0, "
-        "con limite de 64 KiB, y persiste los eventos válidos en Supabase. "
-        "Cada evento requiere un eventId único (UUID); si se reintenta un evento "
-        "ya existente se ignora silenciosamente."
+        "Valida individualmente hasta 20 eventos contra el contrato 1.0.0 y "
+        "persiste los validos en una sola transaccion. Limite de 64 KiB."
     ),
     responses={
         400: {"description": "JSON invalido"},
@@ -94,7 +95,7 @@ def _persist_events(events: list[dict]) -> int:
         422: {"description": "Lote o evento incompatible con el contrato"},
     },
 )
-async def receive_events(request: Request) -> dict[str, int]:
+async def receive_events(request: Request, session: Session = Depends(get_db)) -> dict[str, int]:
     media_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     if media_type != "application/json":
         raise HTTPException(status_code=415, detail="JSON_CONTENT_TYPE_REQUIRED")
@@ -110,61 +111,52 @@ async def receive_events(request: Request) -> dict[str, int]:
     except (ValueError, RecursionError):
         raise HTTPException(status_code=400, detail="INVALID_JSON") from None
 
-    received = valid_batch_size(payload)
-    if received is None:
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"events"}
+        or not isinstance(payload["events"], list)
+        or len(payload["events"]) > MAX_BATCH_EVENTS
+    ):
         raise HTTPException(status_code=422, detail="INVALID_TELEMETRY_BATCH")
 
     events = payload["events"]
-    _logger.info("Telemetría recibida: %d eventos — persistiendo...", received)
+    records: list[TelemetryEventRecord] = []
+    rejected = 0
+    validator = event_validator()
+    for raw_event in events:
+        try:
+            if not validator.is_valid(raw_event):
+                raise ValueError("Evento incompatible con el esquema")
+            event = TelemetryEvent.model_validate(raw_event)
+        except (ValidationError, TypeError, ValueError):
+            rejected += 1
+            continue
 
-    loop = asyncio.get_running_loop()
-    persisted = await loop.run_in_executor(None, _persist_events, events)
+        records.append(
+            TelemetryEventRecord(
+                event_id=event.eventId,
+                timestamp=datetime.fromisoformat(event.timestamp.replace("Z", "+00:00")),
+                session_id=event.sessionId,
+                user_id=event.userId,
+                event_type=event.event_type,
+                schema_version=event.schemaVersion,
+                request_id=event.requestId,
+                service="brasaland-api",
+                tags=event.properties,
+            )
+        )
 
-    _logger.info("Telemetría: %d recibidos, %d persistidos", received, persisted)
-    return {"received": received, "persisted": persisted}
+    if records:
+        try:
+            session.execute(insert(TelemetryEventRecord), [record.model_dump() for record in records])
+            session.commit()
+        except Exception:
+            session.rollback()
+            _logger.exception("No se pudo persistir el lote de telemetría")
+            raise HTTPException(status_code=503, detail="TELEMETRY_STORAGE_UNAVAILABLE") from None
 
-
-@router.get(
-    "/report",
-    summary="Reporte de telemetría con 4 métricas",
-    description=(
-        "Devuelve 4 métricas: eventos/día, tasa de error por tipo, "
-        "percentiles de latencia y tasa de fallo de autenticación. "
-        "Por defecto analiza los últimos 7 días. Cacheado 60 segundos."
-    ),
-    responses={
-        200: {"description": "Reporte de telemetría"},
-    },
-)
-@cached(ttl_seconds=60, skip_args={"request"})
-async def telemetry_report(
-    request: Request,
-    start_date: datetime | None = Query(
-        None,
-        description="Inicio del período (ISO 8601). Por defecto: now - 7 días UTC.",
-    ),
-    end_date: datetime | None = Query(
-        None,
-        description="Fin del período (ISO 8601). Por defecto: now UTC.",
-    ),
-) -> dict:
-    """Reporte de telemetría con 4 métricas.
-
-    El endpoint resuelve el período una sola vez y lo pasa a cada función
-    de análisis, evitando ventanas inconsistentes entre métricas.
-    """
-    end = end_date.replace(tzinfo=timezone.utc) if end_date else datetime.now(timezone.utc)
-    start = start_date.replace(tzinfo=timezone.utc) if start_date else end - timedelta(days=7)
-
-    return {
-        "period": {
-            "from": start.isoformat(),
-            "to": end.isoformat(),
-        },
-        "metrics": {
-            "events_per_day": events_per_day(start, end),
-            "error_rate_by_type": error_rate_by_type(start, end),
-            "api_latency_summary": api_latency_summary(start, end),
-            "auth_failure_rate": auth_failure_rate(start, end),
-        },
-    }
+    _logger.info(
+        "Lote de telemetría procesado: recibidos=%d almacenados=%d rechazados=%d",
+        len(events), len(records), rejected,
+    )
+    return {"received": len(events), "stored": len(records), "rejected": rejected}

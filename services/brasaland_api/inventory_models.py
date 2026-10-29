@@ -13,7 +13,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import Numeric
+from sqlalchemy import Column, DateTime, Index, JSON, Numeric
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -93,3 +94,20 @@ class IngredientLocation(SQLModel, table=True):
     ingredient_id: int = Field(foreign_key="ingredients.id", primary_key=True)
     location_id: int = Field(primary_key=True)
     minimum_stock: float = Field(default=0.0, ge=0)
+
+
+class TelemetryEventRecord(SQLModel, table=True):
+    __tablename__ = "telemetry_events"
+    __table_args__ = (Index("ix_telemetry_events_tags_gin", "tags", postgresql_using="gin"),)
+
+    event_id: str = Field(primary_key=True, max_length=36)
+    timestamp: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, index=True))
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
+    event_type: str = Field(index=True)
+    schema_version: str
+    request_id: str
+    service: str
+    tags: dict[str, object] = Field(
+        sa_column=Column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
+    )

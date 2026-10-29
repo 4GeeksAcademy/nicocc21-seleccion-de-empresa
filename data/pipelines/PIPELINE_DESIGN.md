@@ -388,3 +388,78 @@ Los eventos de negocio de este pipeline viajan por esa cola. Quien debe asumir e
 ### Decisiones abiertas
 
 1. Existe otra implementación de `TelemetryEventRecord` en la rama del PR #21; se reconciliará cuando el tutor lo revise.
+
+## 13. Comandos de ejecución
+
+### CLI directo (entrypoint)
+
+```bash
+# Ejecutar para la última semana cerrada (lunes−7)
+python data/pipelines/pipeline.py
+
+# Ejecutar para una semana específica
+python data/pipelines/pipeline.py --week-start 2026-07-13
+
+# Especificar el trigger (manual | scheduled)
+python data/pipelines/pipeline.py --week-start 2026-07-13 --trigger manual
+
+# Modo validación: ejecuta el pipeline Y guarda un snapshot JSON en data/eval/
+python data/pipelines/pipeline.py --week-start 2026-07-13 --validate
+```
+
+### Como módulo Python
+
+```python
+from data.pipelines.pipeline import main
+import sys
+sys.argv = ["pipeline", "--week-start", "2026-07-13", "--validate"]
+main()
+```
+
+### Disparo vía API REST
+
+```bash
+curl -X POST http://localhost:8000/reporting/pipeline-runs \
+  -H "Content-Type: application/json" \
+  -d '{"week_start": "2026-07-13"}'
+```
+
+### Programado (cron interno con Prefect)
+
+```bash
+# El worker de Prefect ejecuta serve_weekly.py cada lunes 12:00 UTC
+python data/pipelines/serve_weekly.py
+```
+
+## 14. Estrategia de caché
+
+| Task | Política | Expiración | Justificación |
+|------|----------|------------|---------------|
+| `extract_telemetry_events` | `INPUTS` | 1 hora | Los eventos de una semana cerrada NO cambian. Cachear evita re-extraer datos inmutables. La expiración de 1 h permite re-procesar si el operador corrige datos manualmente. |
+| `transform_events` | `INPUTS` | 1 hora | Transformación pura (sin efectos secundarios). Mismos inputs → mismo resultado. |
+
+**Clave de caché:** combinación de (argumentos de entrada + identidad de la función).
+
+## 15. Manejo de fallos y pasos opcionales
+
+### Reintentos por task
+
+| Task | Reintentos | Razón |
+|------|-----------|-------|
+| `extract_telemetry_events` | 3 | La DB puede tener cortes transitorios (timeout de conexión, failover). Es solo lectura; reintentar es seguro. |
+| `load_weekly_performance` | 3 | Contención de escritura en PostgreSQL (posibles deadlocks o serialization failures en upsert concurrente). |
+| `create-pipeline-run` | 2 | Registrar metadatos de la corrida es importante pero NO bloqueante para los datos de negocio. |
+| `finish-pipeline-run` | 2 | Actualizar el estado final es deseable, pero si falla el costo es bajo (se detecta en recovery). |
+
+### Paso opcional con `return_state=True`
+
+Dentro del subflow `_run_week` se invoca `_snapshot_eval_result` con `return_state=True`:
+
+```python
+_snapshot_eval_result.with_options(
+    name="snapshot-eval-result-optional"
+)(result, week_start, return_state=True)
+```
+
+**Comportamiento:** si el snapshot falla (ej. permisos de escritura, disco lleno), el error NO propaga al flujo principal. El pipeline continúa con la carga y registro normales. El snapshot es un paso de validación auxiliar, no crítico para el negocio.
+

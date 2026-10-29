@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from prefect import flow, task
+from prefect.cache_policies import INPUTS
 from sqlalchemy import insert, text, update
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.exc import IntegrityError
@@ -40,6 +41,13 @@ def _closed_week_start(today: date | None = None) -> date:
     return this_monday - timedelta(days=7)
 
 
+@task(
+    name="create-pipeline-run",
+    retries=2,              # 2 reintentos: registrar metadatos de la corrida
+                            #   es importante pero NO bloqueante para los datos
+                            #   de negocio. Si falla, el pipeline igual procesa.
+    retry_delay_seconds=2,
+)
 def _create_run(week_start: date, trigger: str) -> UUID:
     run_id = uuid4()
     try:
@@ -58,7 +66,19 @@ def _create_run(week_start: date, trigger: str) -> UUID:
     return run_id
 
 
-@task(name="extract-telemetry-events", retries=3, retry_delay_seconds=2)
+@task(
+    name="extract-telemetry-events",
+    retries=3,              # 3 reintentos porque la DB puede tener cortes transitorios
+                            #   (timeout de conexión, failover de PostgreSQL).
+                            #   Es una tarea de sólo lectura; reintentar es seguro.
+    retry_delay_seconds=2,  # Espera 2 s entre reintentos para dar tiempo a la DB.
+    cache_policy=INPUTS,    # Clave de caché = (week_start, identidad de la función).
+                            #   Los eventos de una semana cerrada NO cambian,
+                            #   por lo que cachear evita re-extraer datos inmutables.
+    cache_expiration=timedelta(hours=1),  # Expira tras 1 h por si el operador
+                                          #   corrige datos manualmente en ese
+                                          #   periodo y necesita re-procesar.
+)
 def extract_telemetry_events(week_start: date) -> list[dict[str, object]]:
     start, end = week_bounds(week_start)
     query = """
@@ -76,7 +96,14 @@ def extract_telemetry_events(week_start: date) -> list[dict[str, object]]:
     return [dict(row) for row in rows]
 
 
-@task(name="validate-and-aggregate-location-week")
+@task(
+    name="validate-and-aggregate-location-week",
+    cache_policy=INPUTS,    # Clave de caché = (events, week_start).
+                            #   La transformación es pura (sin efectos secundarios);
+                            #   mismos inputs → mismo resultado.
+    cache_expiration=timedelta(hours=1),  # Expira en 1 h para equilibrar
+                                          #   frescura de datos y eficiencia.
+)
 def transform_events(
     events: list[dict[str, object]], week_start: date
 ) -> AggregationResult:
@@ -86,7 +113,13 @@ def transform_events(
     return aggregate_weekly_location_performance(events, locations, week_start)
 
 
-@task(name="upsert-weekly-location-performance", retries=3, retry_delay_seconds=2)
+@task(
+    name="upsert-weekly-location-performance",
+    retries=3,              # 3 reintentos porque hay contención de escritura en
+                            #   PostgreSQL (posibles deadlocks o serialization
+                            #   failures al hacer upsert concurrente).
+    retry_delay_seconds=2,  # Espera 2 s entre reintentos para aliviar la contención.
+)
 def load_weekly_performance(result: AggregationResult) -> int:
     rows = [
         {
@@ -127,6 +160,52 @@ def load_weekly_performance(result: AggregationResult) -> int:
     return len(rows)
 
 
+
+@task(name="snapshot-eval-result")
+def _snapshot_eval_result(
+    result: AggregationResult, week_start: date
+) -> int:
+    """Guarda un snapshot de validación en data/eval/ — paso NO CRÍTICO."""
+    eval_dir = Path(__file__).resolve().parents[1] / "eval"
+    eval_dir.mkdir(parents=True, exist_ok=True)
+    filename = (
+        eval_dir
+        / f"snapshot-{week_start.isoformat()}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    )
+    payload = {
+        "week_start": week_start.isoformat(),
+        "locations": [
+            {
+                "location_id": r.location_id,
+                "country": r.country,
+                "total_purchase_cost": str(r.total_purchase_cost),
+                "total_waste_cost": str(r.total_waste_cost),
+                "waste_ratio": str(r.waste_ratio),
+                "stockout_events_count": r.stockout_events_count,
+                "price_alert_events_count": r.price_alert_events_count,
+                "currency": r.currency,
+            }
+            for r in result.rows
+        ],
+        "events_read": result.events_read,
+        "events_discarded": result.events_discarded,
+        "discard_reasons": dict(result.discard_reasons),
+    }
+    filename.write_text(
+        json.dumps(payload, indent=2, default=str, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return len(result.rows)
+
+
+@task(
+    name="finish-pipeline-run",
+    retries=2,              # 2 reintentos: actualizar el estado final de la
+                            #   corrida es deseable, pero si falla el costo
+                            #   es bajo (se detecta en recovery). Lo crítico
+                            #   son los datos de negocio ya insertados.
+    retry_delay_seconds=2,
+)
 def _finish_run(
     run_id: UUID,
     status: str,
@@ -153,25 +232,40 @@ def _finish_run(
         )
 
 
+@flow(name="run-single-week", validate_parameters=False)
 def _run_week(week_start: date, trigger: str) -> dict[str, object]:
     run_id = _create_run(week_start, trigger)
     result: AggregationResult | None = None
     rows_upserted = 0
+    status = "completed"
+    error_message: str | None = None
     try:
         events = extract_telemetry_events(week_start)
         result = transform_events(events, week_start)
         rows_upserted = load_weekly_performance(result)
-        _finish_run(run_id, "completed", result, rows_upserted)
+        # Paso opcional/no crítico: snapshot de validación a data/eval/
+        # Se invoca con return_state=True para que un fallo NO bloquee el pipeline.
+        # Si falla, el snapshot simplemente no se genera, pero el resto del flujo continúa.
+        _snapshot_eval_result.with_options(
+            name="snapshot-eval-result-optional"
+        )(result, week_start, return_state=True)
     except Exception as exc:
+        status = "failed"
+        error_message = str(exc)[:2000]
+    finally:
         try:
-            _finish_run(run_id, "failed", result, rows_upserted, str(exc)[:2000])
+            _finish_run(run_id, status, result, rows_upserted, error_message)
         except Exception:
-            _logger.exception("No se pudo registrar el fallo de la corrida %s", run_id)
-        raise
+            _logger.exception("No se pudo registrar el final de la corrida %s", run_id)
+
+    if status == "failed" and error_message is not None:
+        raise RuntimeError(error_message)
+
+    assert result is not None
     return {
         "run_id": str(run_id),
         "week_start": week_start.isoformat(),
-        "status": "completed",
+        "status": status,
         "events_read": result.events_read,
         "events_discarded": result.events_discarded,
         "rows_upserted": rows_upserted,

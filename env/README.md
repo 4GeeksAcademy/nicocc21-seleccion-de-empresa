@@ -1,7 +1,8 @@
 # Entorno de variables — Brasaland
 
 Este directorio contiene archivos `.example` con todas las variables de entorno
-necesarias para cada servicio del monorepo.
+necesarias para cada servicio del monorepo. Solo hay plantillas: **ningún valor
+real (claves, contraseñas, URLs con credenciales) debe escribirse aquí.**
 
 ## Uso
 
@@ -13,15 +14,26 @@ necesarias para cada servicio del monorepo.
 
 ## Servicios
 
-| Archivo | Destino típico |
+| Archivo | Destino |
 |---|---|
-| `backend.example` | `services/brasaland_api/.env` o raíz del proyecto |
+| `backend.example` | `services/brasaland_api/.env` |
+| `application.example` | `uis/application/.env` |
 | `backoffice.example` | `uis/backoffice/.env` |
-| `website.example` | `uis/website/.env` |
+| `website.example` | `uis/website/.env` (sin variables por ahora) |
 
 ## Notas
 
 - Los valores con `=` vacío son obligatorios y deben rellenarse.
-- Los valores con `=algo` tienen un valor por defecto seguro para desarrollo local.
-- `DATABASE_URL` requiere una base de datos PostgreSQL real (Supabase, local, etc.).
+- Los valores con `=algo` son valores por defecto para desarrollo local.
+- `JWT_SECRET_KEY` se genera con `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- `DATABASE_URL` requiere una base de datos PostgreSQL real (Supabase, local, etc.)
+  con el formato `postgresql+psycopg2://USUARIO:CONTRASENA@HOST:PUERTO/BASE_DE_DATOS`.
 - `RESEND_API_KEY` requiere una API key de Resend para el envío de correos.
+- Las variables `NEXT_PUBLIC_*` se incluyen en el bundle del navegador: nunca
+  pongas secretos en ellas.
+
+## Si una credencial se expone
+
+Si una contraseña o clave aparece en un commit, chat o log, rótala en el
+proveedor (p. ej. *Reset database password* en Supabase) y actualiza solo tu
+`.env` local.

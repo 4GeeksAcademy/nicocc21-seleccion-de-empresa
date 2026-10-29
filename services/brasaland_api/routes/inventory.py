@@ -50,6 +50,35 @@ if not PRICE_VARIANCE_THRESHOLD.is_finite() or PRICE_VARIANCE_THRESHOLD <= 0:
     raise RuntimeError("TELEMETRY_PRICE_VARIANCE_THRESHOLD debe ser positivo")
 
 
+def _weighted_average_unit_price(
+    session: Session,
+    ingredient_id: int,
+    location_id: int,
+    currency: str,
+    occurred_at: datetime,
+) -> Decimal | None:
+    purchases = session.exec(
+        select(IngredientEntry.quantity, IngredientEntry.unit_price).where(
+            IngredientEntry.ingredient_id == ingredient_id,
+            IngredientEntry.location_id == location_id,
+            IngredientEntry.currency == currency,
+            IngredientEntry.unit_price.is_not(None),
+            IngredientEntry.unit_price > 0,
+            IngredientEntry.created_at <= occurred_at,
+        )
+    ).all()
+    total_quantity = sum((Decimal(str(quantity)) for quantity, _ in purchases), Decimal(0))
+    if total_quantity <= 0:
+        return None
+    total_cost = sum(
+        (Decimal(str(quantity)) * price for quantity, price in purchases if price is not None),
+        Decimal(0),
+    )
+    if total_cost <= 0:
+        return None
+    return Decimal(money(total_cost / total_quantity))
+
+
 async def reject_direct_stock_fields(
     request: Request,
     session: Session = Depends(get_db),
@@ -436,7 +465,17 @@ def create_outbound(
         if exit_.reason == "consumption":
             events.append(make_event("outbound_order_created", {**base, "order_id": str(exit_.id), "reason": "consumption"}, context, exit_.created_at))
         elif exit_.waste_reason:
-            events.append(make_event("stock_waste_registered", {**base, "order_id": str(exit_.id), "reason": exit_.waste_reason}, context, exit_.created_at))
+            waste = {**base, "order_id": str(exit_.id), "reason": exit_.waste_reason}
+            unit_price = _weighted_average_unit_price(
+                session, exit_.ingredient_id, exit_.location_id,
+                str(location_for(exit_.location_id)["currency"]), exit_.created_at,
+            )
+            if unit_price is None:
+                issues.append("WASTE_COST_UNAVAILABLE")
+            else:
+                waste["unit_price"] = money(unit_price)
+                waste["total_amount"] = money(unit_price * Decimal(str(exit_.quantity)))
+            events.append(make_event("stock_waste_registered", waste, context, exit_.created_at))
         else:
             issues.append("LEGACY_WASTE_WITHOUT_CAUSE")
         after = round(available - exit_.quantity, 10)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 // Página de reporte de telemetría — Fase 3
 // Muestra 4 métricas: eventos/día, tasa de error, latencia, auth failures.
@@ -108,31 +109,43 @@ function DataTable({
 export default function TelemetryReportPage() {
   const [report, setReport] = useState<TelemetryReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(isoWeekAgo);
   const [endDate, setEndDate] = useState(isoNow);
 
-  async function load(signal?: AbortSignal) {
+  // Carga inicial
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    fetchReport(startDate, endDate, signal)
+      .then((data) => {
+        if (!signal.aborted) setReport(data);
+      })
+      .catch((e: unknown) => {
+        if (signal.aborted) return;
+        setError(e instanceof Error ? e.message : "Error desconocido");
+      })
+      .finally(() => {
+        if (!signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleLoad() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchReport(startDate, endDate, signal);
+      const data = await fetchReport(startDate, endDate);
       setReport(data);
     } catch (e: unknown) {
-      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   }
-
-  // Carga inicial
-  useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100">
@@ -154,14 +167,14 @@ export default function TelemetryReportPage() {
 
         {/* Navegación */}
         <nav className="mt-6 flex flex-wrap gap-3 text-sm">
-          <a
+          <Link
             href="/"
             className="rounded-full border border-stone-700 px-4 py-2 text-stone-200 transition hover:border-fuchsia-300 hover:text-fuchsia-200"
           >
             Volver al panel principal
-          </a>
+          </Link>
           <button
-            onClick={() => load()}
+            onClick={() => handleLoad()}
             className="rounded-full border border-fuchsia-300/60 bg-fuchsia-300/10 px-4 py-2 font-bold text-fuchsia-200 transition hover:bg-fuchsia-300/20"
           >
             {loading ? "Cargando…" : "Refrescar"}
@@ -190,7 +203,7 @@ export default function TelemetryReportPage() {
               />
             </label>
             <button
-              onClick={() => load()}
+              onClick={() => handleLoad()}
               className="rounded-lg border border-fuchsia-300/60 bg-fuchsia-300/10 px-5 py-1.5 font-bold text-fuchsia-200 transition hover:bg-fuchsia-300/20"
             >
               Aplicar
@@ -245,7 +258,7 @@ export default function TelemetryReportPage() {
             <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
               <h2 className="text-xl font-extrabold text-fuchsia-200">Tasa de error por tipo</h2>
               <p className="mt-1 text-xs text-stone-400">
-                Proporción de eventos con error (status &ge;400 o validation_failed) sobre el total.
+                Proporción de eventos con error (status &gt;=400 o validation_failed) sobre el total.
               </p>
               {report.metrics.error_rate_by_type.length === 0 ? (
                 <p className="mt-4 text-sm text-stone-500">No hay eventos en el período.</p>
@@ -304,82 +317,6 @@ export default function TelemetryReportPage() {
                     (e) => [fmtDate(e.date), e.attempts, e.failures, e.successes, fmtPct(e.failure_rate)],
                   )}
                 />
-              )}
-            </section>
-          </>
-        )}
-      </main>
-    </div>
-  );
-}
-              <h2 className="text-xl font-extrabold text-fuchsia-200">
-                Tasa de error por tipo
-              </h2>
-              <p className="mt-1 text-xs text-stone-400">
-                Proporción de eventos con error (status &ge;400 o validation_failed) sobre el total.
-              </p>
-              {report.metrics.error_rate_by_type.length === 0 ? (
-                <p className="mt-4 text-sm text-stone-500">No hay eventos en el período.</p>
-              ) : (
-                <div className="mt-4 overflow-x-auto">
-                  {(() => {
-                    const h = ["Tipo", "Total", "Errores", "Tasa error"];
-                    const r = report.metrics.error_rate_by_type.map(
-                      (e) => [e.event_type, e.total, e.errors, fmtPct(e.error_rate)],
-                    );
-                    return dangerouslyParseHtml(renderTable(h, r));
-                  })()}
-                </div>
-              )}
-            </section>
-
-            {/* ── Métrica 3: Latencia API ── */}
-            <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
-              <h2 className="text-xl font-extrabold text-fuchsia-200">
-                Latencia de API
-              </h2>
-              <p className="mt-1 text-xs text-stone-400">
-                Percentiles de latencia (ms) de api_request_completed por ruta y método.
-              </p>
-              {report.metrics.api_latency_summary.length === 0 ? (
-                <p className="mt-4 text-sm text-stone-500">
-                  No hay eventos api_request_completed con duration_ms en el período.
-                </p>
-              ) : (
-                <div className="mt-4 overflow-x-auto">
-                  {(() => {
-                    const h = ["Ruta", "Método", "Req", "P50", "P90", "P99", "Media"];
-                    const r = report.metrics.api_latency_summary.map(
-                      (e) => [e.route_template, e.method, e.count, fmtMs(e.p50_ms), fmtMs(e.p90_ms), fmtMs(e.p99_ms), fmtMs(e.mean_ms)],
-                    );
-                    return dangerouslyParseHtml(renderTable(h, r));
-                  })()}
-                </div>
-              )}
-            </section>
-
-            {/* ── Métrica 4: Auth failure rate ── */}
-            <section className="mt-8 rounded-2xl border border-stone-700 bg-stone-900 p-6">
-              <h2 className="text-xl font-extrabold text-fuchsia-200">
-                Tasa de fallo de autenticación
-              </h2>
-              <p className="mt-1 text-xs text-stone-400">
-                Proporción diaria de intentos fallidos de login sobre el total de intentos.
-              </p>
-              {report.metrics.auth_failure_rate.length === 0 ? (
-                <p className="mt-4 text-sm text-stone-500">
-                  No hay eventos de login en el período seleccionado.
-                </p>
-              ) : (
-                <div className="mt-4 overflow-x-auto">
-                  {(() => {
-                    const h = ["Fecha", "Intentos", "Fallos", "Exitosos", "Tasa fallo"];
-                    const r = report.metrics.auth_failure_rate.map(
-                      (e) => [fmtDate(e.date), e.attempts, e.failures, e.successes, fmtPct(e.failure_rate)],
-                    );
-                    return dangerouslyParseHtml(renderTable(h, r));
-                  })()}
-                </div>
               )}
             </section>
           </>

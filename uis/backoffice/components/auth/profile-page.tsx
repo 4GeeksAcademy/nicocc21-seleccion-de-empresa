@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getMe, updateProfile, logout } from "../../../../src/auth/auth-client";
 import { useWorkflowTelemetry } from "../use-workflow-telemetry";
@@ -99,12 +100,12 @@ export default function ProfilePage() {
             >
               Reintentar
             </button>
-            <a
+            <Link
               href="/"
               className="rounded-lg border border-stone-600 bg-stone-800 px-4 py-2 text-sm font-medium text-stone-200 transition hover:bg-stone-700"
             >
               Volver al inicio
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -202,13 +203,13 @@ export default function ProfilePage() {
               >
                 {saving ? "Guardando…" : "Guardar cambios"}
               </button>
-              <a
+              <Link
                 href="/"
                 onClick={(event) => { if (saving) event.preventDefault(); else workflow.cancel(); }}
                 className="rounded-lg border border-stone-600 bg-stone-800 px-4 py-2 text-sm font-medium text-stone-200 transition hover:bg-stone-700"
               >
                 Volver
-              </a>
+              </Link>
             </div>
           </form>
         </div>

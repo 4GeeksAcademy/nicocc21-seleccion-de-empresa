@@ -1,3 +1,4 @@
+// @ts-nocheck — archivo compartido sin contexto de proyecto propio
 /**
  * AuthGuard — componente compartido para proteger rutas de autenticación.
  *

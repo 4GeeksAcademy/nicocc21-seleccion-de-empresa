@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchOrders } from "../lib";
 import Link from "next/link";
 import type { InventoryOrder } from "../types";
@@ -10,7 +10,14 @@ export default function OrdersHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadOrders = useCallback(async () => {
+  useEffect(() => {
+    fetchOrders()
+      .then((data) => setOrders(data))
+      .catch(() => setError("No se pudieron cargar las órdenes."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function loadOrders() {
     setLoading(true);
     setError(null);
     try {
@@ -21,11 +28,7 @@ export default function OrdersHistoryPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void loadOrders();
-  }, [loadOrders]);
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchProducts } from "../lib";
 import type { Ingredient } from "../types";
 
@@ -52,7 +52,17 @@ export default function ProductsPage() {
     return map;
   }, [products]);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    fetchProducts()
+      .then((data) => setProducts(data))
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : "Error al cargar productos";
+        setError(message);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function loadProducts() {
     setLoading(true);
     setError(null);
     try {
@@ -64,11 +74,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  }
 
   if (loading) {
     return (
@@ -83,7 +89,7 @@ export default function ProductsPage() {
       <div className="rounded-xl border border-red-700 bg-red-950 p-6 text-center">
         <p className="text-red-200">{error}</p>
         <button
-          onClick={load}
+          onClick={loadProducts}
           className="mt-4 rounded-lg bg-red-800 px-4 py-2 text-sm text-white hover:bg-red-700"
         >
           Reintentar

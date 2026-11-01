@@ -97,6 +97,12 @@ export default function BackofficePage() {
               Ir al analizador de incidencias
             </a>
             <a
+              href="/reporting"
+              className="rounded-full border border-amber-300/60 bg-amber-300/10 px-4 py-2 font-bold text-amber-200 transition hover:bg-amber-300/20"
+            >
+              Reporte semanal de costo y merma
+            </a>
+            <a
               href="/telemetry-report"
               className="rounded-full border border-fuchsia-300/60 bg-fuchsia-300/10 px-4 py-2 font-bold text-fuchsia-200 transition hover:bg-fuchsia-300/20"
             >

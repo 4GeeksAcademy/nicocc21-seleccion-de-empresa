@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchProducts, fetchProduct, fetchInventoryLocations, createOutboundOrder } from "../../lib";
 import type { Ingredient, InventoryLocation, IngredientExitCreate } from "../../types";
@@ -28,22 +28,17 @@ export default function OutboundOrderPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProducts = useCallback(async () => {
-    try {
-      const [data, locationData] = await Promise.all([fetchProducts(), fetchInventoryLocations()]);
-      setProducts(data);
-      setLocations(locationData);
-      if (preselectedId && data.some((p) => String(p.id) === preselectedId)) {
-        setIngredientId(preselectedId);
-      }
-    } catch {
-      setError("No se pudieron cargar los productos.");
-    }
-  }, [preselectedId]);
-
   useEffect(() => {
-    void loadProducts();
-  }, [loadProducts]);
+    Promise.all([fetchProducts(), fetchInventoryLocations()])
+      .then(([data, locationData]) => {
+        setProducts(data);
+        setLocations(locationData);
+        if (preselectedId && data.some((p) => String(p.id) === preselectedId)) {
+          setIngredientId(preselectedId);
+        }
+      })
+      .catch(() => setError("No se pudieron cargar los productos."));
+  }, [preselectedId]);
 
   useEffect(() => {
     if (!ingredientId) return;

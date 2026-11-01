@@ -1,0 +1,10 @@
+{
+  "name": "@brasaland/shared-ui",
+  "version": "0.1.0",
+  "private": true,
+  "peerDependencies": {
+    "next": ">=15.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  }
+}

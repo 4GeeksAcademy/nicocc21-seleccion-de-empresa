@@ -1,0 +1,6 @@
+SHELL=/bin/sh
+CRON_TZ=UTC
+BRASALAND_HOME=/opt/brasaland
+BRASALAND_PYTHON=/opt/brasaland/.venv/bin/python
+
+0 2 * * * cd "$BRASALAND_HOME" && "$BRASALAND_PYTHON" scripts/nightly_export.py >> "$BRASALAND_HOME/data/raw/nightly-export.log" 2>&1

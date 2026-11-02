@@ -427,6 +427,10 @@ from sqlmodel import Session, SQLModel, create_engine
 from services.brasaland_api.telemetry_models import (  # noqa: F401 — registro
     TelemetryEventRecord,
 )
+from services.telemetry.models import (  # noqa: F401 — registro
+    DailyKPI,
+    JobRun,
+)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:

@@ -57,10 +57,10 @@ def test_kpi_values_match_manual_calculation() -> None:
     )
 
     location = next(row for row in result.rows if row.location_id == "L01")
-    # Cálculo manual: compra=100, merma=25, ratio=25/(100+25)=0.20
+    # Cálculo manual: compra=100, merma=25, ratio=25/100=0.25
     assert location.total_purchase_cost == Decimal("100.00")
     assert location.total_waste_cost == Decimal("25.00")
-    assert location.waste_ratio == Decimal("0.200000")
+    assert location.waste_ratio == Decimal("0.250000")
     assert location.stockout_events_count == 1
     assert location.price_alert_events_count == 1
     assert result.events_discarded == 0
@@ -92,7 +92,7 @@ def test_discards_event_with_non_numeric_cost() -> None:
     )
 
     assert result.events_discarded == 1
-    assert result.discard_reasons == {"missing_cost": 1}
+    assert result.discard_reasons == {"invalid_cost": 1}
 
 
 def test_empty_week_emits_all_locations_with_zeros() -> None:

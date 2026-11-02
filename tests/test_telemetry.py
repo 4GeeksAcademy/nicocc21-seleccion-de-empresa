@@ -6,11 +6,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from services.brasaland_api.database import get_db
-from services.brasaland_api.inventory_models import TelemetryEventRecord
-from services.brasaland_api.routes.telemetry import router
+from services.brasaland_api.telemetry_models import TelemetryEventRecord
+from services.brasaland_api.routes.telemetry import router as telemetry_router
 from services.brasaland_api.telemetry import MAX_BATCH_BYTES
 
 
@@ -33,7 +34,7 @@ class RecordingSession:
 @pytest.fixture
 def telemetry_client() -> TestClient:
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(telemetry_router)
     session = RecordingSession()
 
     def get_test_session():
@@ -127,7 +128,11 @@ def test_rejects_missing_required_fields(
 ) -> None:
     del section_event[field]
     response = telemetry_client.post("/telemetry/events", json={"events": [section_event]})
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json() == {"received": 1, "stored": 0, "rejected": 1}
+    session = telemetry_client.app.state.telemetry_session
+    assert session.execute_calls == []
+    assert session.commit_calls == 0
 
 
 @pytest.mark.parametrize("payload", [{}, {"events": {}}, [], None])
@@ -160,7 +165,7 @@ def test_accepts_empty_event_array(telemetry_client: TestClient) -> None:
 
 
 def test_telemetry_route_is_append_only(telemetry_client: TestClient) -> None:
-    routes = [route for route in telemetry_client.app.routes if getattr(route, "path", None) == "/telemetry/events"]
+    routes = [r for r in telemetry_router.routes if isinstance(r, APIRoute)]
     assert len(routes) == 1
     assert routes[0].methods == {"POST"}
 

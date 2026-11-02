@@ -41,11 +41,11 @@ def _closed_week_start(today: date | None = None) -> date:
     return this_monday - timedelta(days=7)
 
 
+# ── Tasks (sin cambios) ──────────────────────────────────────
+
 @task(
     name="create-pipeline-run",
-    retries=2,              # 2 reintentos: registrar metadatos de la corrida
-                            #   es importante pero NO bloqueante para los datos
-                            #   de negocio. Si falla, el pipeline igual procesa.
+    retries=2,
     retry_delay_seconds=2,
 )
 def _create_run(week_start: date, trigger: str) -> UUID:
@@ -68,16 +68,10 @@ def _create_run(week_start: date, trigger: str) -> UUID:
 
 @task(
     name="extract-telemetry-events",
-    retries=3,              # 3 reintentos porque la DB puede tener cortes transitorios
-                            #   (timeout de conexión, failover de PostgreSQL).
-                            #   Es una tarea de sólo lectura; reintentar es seguro.
-    retry_delay_seconds=2,  # Espera 2 s entre reintentos para dar tiempo a la DB.
-    cache_policy=INPUTS,    # Clave de caché = (week_start, identidad de la función).
-                            #   Los eventos de una semana cerrada NO cambian,
-                            #   por lo que cachear evita re-extraer datos inmutables.
-    cache_expiration=timedelta(hours=1),  # Expira tras 1 h por si el operador
-                                          #   corrige datos manualmente en ese
-                                          #   periodo y necesita re-procesar.
+    retries=3,
+    retry_delay_seconds=2,
+    cache_policy=INPUTS,
+    cache_expiration=timedelta(hours=1),
 )
 def extract_telemetry_events(week_start: date) -> list[dict[str, object]]:
     start, end = week_bounds(week_start)
@@ -98,11 +92,8 @@ def extract_telemetry_events(week_start: date) -> list[dict[str, object]]:
 
 @task(
     name="validate-and-aggregate-location-week",
-    cache_policy=INPUTS,    # Clave de caché = (events, week_start).
-                            #   La transformación es pura (sin efectos secundarios);
-                            #   mismos inputs → mismo resultado.
-    cache_expiration=timedelta(hours=1),  # Expira en 1 h para equilibrar
-                                          #   frescura de datos y eficiencia.
+    cache_policy=INPUTS,
+    cache_expiration=timedelta(hours=1),
 )
 def transform_events(
     events: list[dict[str, object]], week_start: date
@@ -115,10 +106,8 @@ def transform_events(
 
 @task(
     name="upsert-weekly-location-performance",
-    retries=3,              # 3 reintentos porque hay contención de escritura en
-                            #   PostgreSQL (posibles deadlocks o serialization
-                            #   failures al hacer upsert concurrente).
-    retry_delay_seconds=2,  # Espera 2 s entre reintentos para aliviar la contención.
+    retries=3,
+    retry_delay_seconds=2,
 )
 def load_weekly_performance(result: AggregationResult) -> int:
     rows = [
@@ -160,7 +149,6 @@ def load_weekly_performance(result: AggregationResult) -> int:
     return len(rows)
 
 
-
 @task(name="snapshot-eval-result")
 def _snapshot_eval_result(
     result: AggregationResult, week_start: date
@@ -200,10 +188,7 @@ def _snapshot_eval_result(
 
 @task(
     name="finish-pipeline-run",
-    retries=2,              # 2 reintentos: actualizar el estado final de la
-                            #   corrida es deseable, pero si falla el costo
-                            #   es bajo (se detecta en recovery). Lo crítico
-                            #   son los datos de negocio ya insertados.
+    retries=2,
     retry_delay_seconds=2,
 )
 def _finish_run(
@@ -232,6 +217,37 @@ def _finish_run(
         )
 
 
+# ── Subflows de dominio ──────────────────────────────────────
+
+@flow(name="extract-week-subflow", validate_parameters=False)
+def extract_week_subflow(week_start: date) -> list[dict[str, object]]:
+    """Subflow 1: Extrae eventos de telemetría para una semana."""
+    events = extract_telemetry_events(week_start)
+    return events
+
+
+@flow(name="transform-week-subflow", validate_parameters=False)
+def transform_week_subflow(
+    events: list[dict[str, object]], week_start: date
+) -> AggregationResult:
+    """Subflow 2: Transforma eventos en KPIs agregados por local."""
+    result = transform_events(events, week_start)
+    return result
+
+
+@flow(name="load-week-subflow", validate_parameters=False)
+def load_week_subflow(result: AggregationResult, week_start: date) -> int:
+    """Subflow 3: Carga los KPIs en la base de datos y genera snapshot."""
+    rows_upserted = load_weekly_performance(result)
+    # Snapshot opcional: un fallo aquí no bloquea el pipeline
+    _snapshot_eval_result.with_options(
+        name="snapshot-eval-result-optional"
+    )(result, week_start, return_state=True)
+    return rows_upserted
+
+
+# ── Subflow semanal (orquestador de los 3 subflows) ──────────
+
 @flow(name="run-single-week", validate_parameters=False)
 def _run_week(week_start: date, trigger: str) -> dict[str, object]:
     run_id = _create_run(week_start, trigger)
@@ -240,15 +256,12 @@ def _run_week(week_start: date, trigger: str) -> dict[str, object]:
     status = "completed"
     error_message: str | None = None
     try:
-        events = extract_telemetry_events(week_start)
-        result = transform_events(events, week_start)
-        rows_upserted = load_weekly_performance(result)
-        # Paso opcional/no crítico: snapshot de validación a data/eval/
-        # Se invoca con return_state=True para que un fallo NO bloquee el pipeline.
-        # Si falla, el snapshot simplemente no se genera, pero el resto del flujo continúa.
-        _snapshot_eval_result.with_options(
-            name="snapshot-eval-result-optional"
-        )(result, week_start, return_state=True)
+        # Subflow 1: Extracción
+        events = extract_week_subflow(week_start)
+        # Subflow 2: Transformación
+        result = transform_week_subflow(events, week_start)
+        # Subflow 3: Carga
+        rows_upserted = load_week_subflow(result, week_start)
     except Exception as exc:
         status = "failed"
         error_message = str(exc)[:2000]
@@ -271,6 +284,8 @@ def _run_week(week_start: date, trigger: str) -> dict[str, object]:
         "rows_upserted": rows_upserted,
     }
 
+
+# ── Flow principal (sin cambios) ─────────────────────────────
 
 @flow(name=PIPELINE_NAME, log_prints=False)
 def weekly_location_performance_flow(

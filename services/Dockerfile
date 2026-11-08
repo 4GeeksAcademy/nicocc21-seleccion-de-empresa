@@ -19,7 +19,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar el código de la API
 COPY services/brasaland_api/ ./services/brasaland_api/
+COPY services/reporting/ ./services/reporting/
+COPY services/celery_app.py ./services/celery_app.py
 COPY services/__init__.py ./services/__init__.py
+COPY data/pipelines/ ./data/pipelines/
+COPY data/process/ ./data/process/
 COPY packages/ ./packages/
 COPY docs/telemetry/event-schemas.json ./docs/telemetry/event-schemas.json
 COPY data/locations.json ./data/locations.json

@@ -31,3 +31,6 @@ SEED_ADMIN_EMAIL=admin@brasaland.com
 # El backend usa esta URL para validar lotes entrantes.
 # Se expone en /telemetry/events bajo el router de telemetría.
 TELEMETRY_ENDPOINT=http://localhost:8000/telemetry/events
+# === Redis (broker y resultados de Celery, DEV-55) ===
+# En Docker Compose se sobrescribe con redis://redis:6379/0
+REDIS_URL=redis://localhost:6379/0

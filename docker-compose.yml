@@ -22,6 +22,23 @@ services:
     networks:
       - brasaland-net
 
+  # ─── Redis (broker y backend de resultados de Celery, DEV-55) ───
+  redis:
+    image: redis:7-alpine
+    container_name: brasaland-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - brasaland-net
+
   # ─── Backend Python (FastAPI + WSGI) ───────────────────
   backend:
     build:
@@ -32,11 +49,57 @@ services:
       - "8000:8000"   # WSGI (incidencias analyze/export)
       - "8001:8001"   # FastAPI (auth, suppliers, incidents CRUD, inventory)
     env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
     volumes:
-      - ./services/brasaland_api/:/app/services/brasaland_api/
+      - ./services/:/app/services/
+      - ./data/:/app/data/
       - ./packages/:/app/packages/
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - brasaland-net
+
+  # ─── Worker Celery (proceso independiente de FastAPI) ──
+  worker:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+    container_name: brasaland-worker
+    command: ["celery", "-A", "services.celery_app", "worker", "--loglevel=INFO"]
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./services/:/app/services/
+      - ./data/:/app/data/
+      - ./packages/:/app/packages/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - brasaland-net
+
+  # ─── Flower (monitor de la cola, solo desarrollo) ──────
+  flower:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+    container_name: brasaland-flower
+    command: ["celery", "-A", "services.celery_app", "flower", "--port=5555"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./services/:/app/services/
+    depends_on:
+      redis:
         condition: service_healthy
     networks:
       - brasaland-net
@@ -75,6 +138,7 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
 
 networks:
   brasaland-net:

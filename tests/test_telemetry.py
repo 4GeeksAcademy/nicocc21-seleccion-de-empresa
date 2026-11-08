@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from services.brasaland_api.database import get_db
-from services.brasaland_api.inventory_models import TelemetryEventRecord
+from services.brasaland_api.telemetry_models import TelemetryEventRecord
 from services.brasaland_api.routes.telemetry import router
 from services.brasaland_api.telemetry import MAX_BATCH_BYTES
 
@@ -61,16 +61,14 @@ def section_event() -> dict[str, object]:
 def test_storage_model_has_contract_columns_and_analytical_indexes() -> None:
     table = TelemetryEventRecord.__table__
     assert set(table.columns.keys()) == {
-        "event_id", "timestamp", "session_id", "user_id", "event_type",
-        "schema_version", "request_id", "service", "tags",
+        "id", "event_id", "timestamp", "session_id", "user_id", "event_type",
+        "schema_version", "request_id", "properties", "received_at",
     }
 
     indexes = {index.name: index for index in table.indexes}
-    assert len(indexes) == 3
     assert any([column.name for column in index.columns] == ["timestamp"] for index in indexes.values())
     assert any([column.name for column in index.columns] == ["event_type"] for index in indexes.values())
-    tags_index = next(index for index in indexes.values() if [column.name for column in index.columns] == ["tags"])
-    assert tags_index.dialect_options["postgresql"]["using"] == "gin"
+    assert any("event_id" in [column.name for column in index.columns] for index in indexes.values())
 
 
 @pytest.mark.parametrize("count", [1, 2, 20])
@@ -85,8 +83,7 @@ def test_accepts_valid_batches(
     assert len(session.execute_calls) == 1
     assert len(session.execute_calls[0][1]) == count
     assert session.commit_calls == 1
-    assert session.execute_calls[0][1][0]["service"] == "brasaland-api"
-    assert session.execute_calls[0][1][0]["tags"] == events[0]["properties"]
+    assert session.execute_calls[0][1][0]["properties"] == events[0]["properties"]
 
 
 @pytest.mark.parametrize(

@@ -73,6 +73,62 @@ ai-engineering-company-project-monorepo/
 
 ---
 
+## Async tasks (DEV-55 — Redis + Celery)
+
+El proyecto usa **Celery** con **Redis** como broker y backend de resultados para desacoplar operaciones pesadas de la API.
+
+### Dependencias
+
+- `celery`, `redis`, `flower` — instalados en `pyproject.toml` / `requirements.txt`.
+
+### Infraestructura (Docker)
+
+| Servicio | Puerto | Descripción |
+|----------|--------|-------------|
+| `redis`  | `6379` | Broker y result backend. Política `noeviction`. |
+| `worker` | —      | Proceso independiente que consume la cola. |
+| `flower` | `5555` | Monitor web de la cola (solo desarrollo). |
+
+### Cómo levantar
+
+```bash
+# Todo junto (Redis + API + worker + Flower)
+docker compose up --build
+
+# O solo Redis si ejecutas el worker fuera de Docker:
+docker compose up -d redis
+
+# Worker local (requiere Redis corriendo y REDIS_URL configurada)
+celery -A services.celery_app worker --loglevel=INFO
+
+# Flower local
+celery -A services.celery_app flower --port=5555
+```
+
+### Cómo detener
+
+```bash
+docker compose down
+# Si el worker corre local: Ctrl+C
+```
+
+### Endpoints
+
+- **`POST /reporting/pipeline-runs`** — encola un run del pipeline semanal y devuelve `202 Accepted` con `task_id`.
+- **`GET /tasks/{task_id}`** — devuelve el estado (`pending`, `started`, `success`, `failure`) y el resultado si está disponible.
+
+### Reintentos y Dead Letter Queue
+
+- La tarea `run_weekly_pipeline` reintenta hasta 3 veces con backoff exponencial (`retry_backoff=2`).
+- Tras 3 fallos consecutivos, se registra en la tabla `reporting.dead_letter_entries` de PostgreSQL con: `task_id`, `task_name`, `attempt`, `error`, `failed_at`.
+
+### Observabilidad
+
+- Señales de Celery (`task_prerun`, `task_postrun`, `task_failure`) registran cada tarea con `task_id`, nombre, estado y duración.
+- Flower muestra tareas encoladas, en proceso y completadas.
+
+---
+
 ## Milestones (reference)
 
 | Milestone | Focus        | Typical deliverables                        |

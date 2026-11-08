@@ -73,6 +73,20 @@ Index(
 )
 
 
+
+dead_letter_entries = Table(
+    "dead_letter_entries",
+    metadata,
+    Column("id", Uuid(as_uuid=True), primary_key=True, default=uuid4),
+    Column("task_id", String, nullable=False),
+    Column("task_name", String, nullable=False),
+    Column("attempt", Integer, nullable=False),
+    Column("error", Text, nullable=False),
+    Column("failed_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    schema="reporting",
+)
+
+
 @lru_cache(maxsize=1)
 def get_engine() -> Engine:
     database_url = os.getenv("DATABASE_URL")

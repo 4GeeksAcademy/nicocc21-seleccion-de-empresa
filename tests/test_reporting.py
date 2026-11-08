@@ -64,7 +64,6 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
         yield session
 
     app.dependency_overrides[get_db] = get_test_session
-    monkeypatch.setattr(routes, "recover_stale_pipeline_runs", lambda: 0)
     return TestClient(app)
 
 
@@ -112,27 +111,34 @@ def test_latest_pipeline_run_returns_run_metadata(client: TestClient) -> None:
     assert response.json()["status"] == "completed"
 
 
-def test_manual_run_invokes_flow(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, object] = {}
-
-    def fake_flow(week_start: date | None, trigger: str) -> list[dict[str, object]]:
-        captured.update(week_start=week_start, trigger=trigger)
-        return [{"status": "completed"}]
-
-    monkeypatch.setattr(routes, "weekly_location_performance_flow", fake_flow)
-    response = client.post("/reporting/pipeline-runs", json={"week_start": "2026-10-19"})
-
-    assert response.status_code == 200
-    assert captured == {"week_start": date(2026, 10, 19), "trigger": "manual"}
-
-
-def test_manual_run_returns_conflict_for_active_week(
+def test_manual_run_enqueues_task_and_returns_202(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def already_running(_week_start: date | None, trigger: str) -> list[dict[str, object]]:
-        raise routes.PipelineAlreadyRunning(date(2026, 10, 19))
+    captured: dict[str, object] = {}
 
-    monkeypatch.setattr(routes, "weekly_location_performance_flow", already_running)
+    def fake_delay(week_start: str | None) -> SimpleNamespace:
+        captured["week_start"] = week_start
+        return SimpleNamespace(id="task-123")
+
+    monkeypatch.setattr(routes.run_weekly_pipeline, "delay", fake_delay)
     response = client.post("/reporting/pipeline-runs", json={"week_start": "2026-10-19"})
 
-    assert response.status_code == 409
+    assert response.status_code == 202
+    assert response.json() == {"task_id": "task-123"}
+    assert captured == {"week_start": "2026-10-19"}
+
+
+def test_manual_run_without_body_enqueues_default_week(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_delay(week_start: str | None) -> SimpleNamespace:
+        captured["week_start"] = week_start
+        return SimpleNamespace(id="task-456")
+
+    monkeypatch.setattr(routes.run_weekly_pipeline, "delay", fake_delay)
+    response = client.post("/reporting/pipeline-runs")
+
+    assert response.status_code == 202
+    assert captured == {"week_start": None}

@@ -3,20 +3,16 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlmodel import Session
 
 from data.pipelines.storage import pipeline_runs, weekly_location_performance
-from data.pipelines.recovery import recover_stale_pipeline_runs
-from data.pipelines.weekly_location_performance import (
-    PIPELINE_NAME,
-    PipelineAlreadyRunning,
-    weekly_location_performance_flow,
-)
+from data.pipelines.weekly_location_performance import PIPELINE_NAME
 from data.process.weekly_location_performance import week_bounds
 from services.brasaland_api.database import get_db
+from services.reporting.tasks import run_weekly_pipeline
 
 router = APIRouter(prefix="/reporting", tags=["Reporting"])
 
@@ -83,14 +79,10 @@ def get_latest_pipeline_run(session: Session = Depends(get_db)) -> dict[str, Any
     return dict(row)
 
 
-@router.post("/pipeline-runs")
+@router.post("/pipeline-runs", status_code=status.HTTP_202_ACCEPTED)
 def create_pipeline_run(
     payload: ManualPipelineRun | None = Body(default=None),
-) -> dict[str, Any]:
+) -> dict[str, str]:
     week_start = payload.week_start if payload else None
-    recover_stale_pipeline_runs()
-    try:
-        runs = weekly_location_performance_flow(week_start, trigger="manual")
-    except PipelineAlreadyRunning as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"runs": runs}
+    task = run_weekly_pipeline.delay(week_start.isoformat() if week_start else None)
+    return {"task_id": task.id}

@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "question": "¿Cuántos puntos necesito para alcanzar el nivel Oro en Brasa Points?",
+    "source_document": "loyalty-program",
+    "expected_chunk_section": "Niveles de membresía",
+    "expected_answer_contains": ["1.500", "puntos", "Oro"],
+    "notes": "Cubre el programa de lealtad — niveles de membresía"
+  },
+  {
+    "id": 2,
+    "question": "¿Cómo puedo canjear mis puntos Brasa Points?",
+    "source_document": "loyalty-program",
+    "expected_chunk_section": "Canje de Puntos",
+    "expected_answer_contains": ["canjear", "puntos", "local"],
+    "notes": "Cubre el programa de lealtad — canje de puntos"
+  },
+  {
+    "id": 3,
+    "question": "¿Cuál es la meta máxima de desperdicio evitable para un local en Colombia?",
+    "source_document": "waste-protocol",
+    "expected_chunk_section": "Metas y Umbrales",
+    "expected_answer_contains": ["4,5", "%", "Colombia"],
+    "notes": "Cubre el protocolo de desperdicio — metas por tipo de local"
+  },
+  {
+    "id": 4,
+    "question": "¿Qué hago si un producto llega dañado en un pedido a proveedor?",
+    "source_document": "supplier-ordering",
+    "expected_chunk_section": "Recepción de Pedidos",
+    "expected_answer_contains": ["dañado", "24 horas", "devolverse"],
+    "notes": "Cubre el procedimiento de pedido a proveedores — recepción"
+  },
+  {
+    "id": 5,
+    "question": "¿La Costilla BBQ tiene alérgenos?",
+    "source_document": "menu-allergens",
+    "expected_chunk_section": "Platos Principales",
+    "expected_answer_contains": ["Costilla BBQ", "Mostaza"],
+    "notes": "Cubre la guía de alérgenos — platos principales"
+  },
+  {
+    "id": 6,
+    "question": "¿Cuál es el plazo de entrega para un pedido urgente a proveedor?",
+    "source_document": "supplier-ordering",
+    "expected_chunk_section": "Proceso de Pedido",
+    "expected_answer_contains": ["24 horas", "15%", "recargo"],
+    "notes": "Cubre el procedimiento de pedido — plazos de entrega"
+  },
+  {
+    "id": 7,
+    "question": "¿Cuánto tiempo duran los puntos Brasa Points antes de caducar?",
+    "source_document": "loyalty-program",
+    "expected_chunk_section": "Política de Caducidad y Cancelación",
+    "expected_answer_contains": ["12 meses", "caducan"],
+    "notes": "Cubre el programa de lealtad — caducidad de puntos"
+  },
+  {
+    "id": 8,
+    "question": "¿Qué alérgenos tiene la Bandeja Paisa Brasaland?",
+    "source_document": "menu-allergens",
+    "expected_chunk_section": "Platos Principales",
+    "expected_answer_contains": ["Bandeja Paisa", "Leche", "Gluten", "Huevo", "Soja"],
+    "notes": "Cubre la guía de alérgenos — platos principales (Bandeja Paisa)"
+  },
+  {
+    "id": 9,
+    "question": "¿Cuál es el procedimiento si un local supera la meta de desperdicio por 3 meses consecutivos?",
+    "source_document": "waste-protocol",
+    "expected_chunk_section": "Metas y Umbrales",
+    "expected_answer_contains": ["auditoría", "operativa"],
+    "notes": "Cubre el protocolo de desperdicio — consecuencias por incumplimiento"
+  },
+  {
+    "id": 10,
+    "question": "¿Cuál es el descuento por pago de contado a un proveedor?",
+    "source_document": "supplier-ordering",
+    "expected_chunk_section": "Proceso de Pedido",
+    "expected_answer_contains": ["3%", "contado", "descuento"],
+    "notes": "Cubre el procedimiento de pedido — forma de pago"
+  }
+]

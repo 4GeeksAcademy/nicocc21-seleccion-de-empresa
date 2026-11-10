@@ -18,6 +18,9 @@ dependencies = [
     "jsonschema[format-nongpl]>=4.23.0,<5.0.0",
     "pandas>=2.2.0,<3.0.0",
     "prefect>=3.0.0,<4.0.0",
+    "scikit-learn>=1.9.1",
+    "xgboost>=3.2.0",
+    "matplotlib>=3.11.2",
 ]
 
 [dependency-groups]

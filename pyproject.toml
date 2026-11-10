@@ -21,6 +21,7 @@ dependencies = [
     "scikit-learn>=1.9.1",
     "xgboost>=3.2.0",
     "matplotlib>=3.11.2",
+    "numpy>=2.4.6",
 ]
 
 [dependency-groups]

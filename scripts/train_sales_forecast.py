@@ -18,7 +18,7 @@ Model choice — XGBoost vs Random Forest:
        learning_rate=0.1, and early stopping.
 
 Usage:
-    python3 scripts/train_sales_forecast.py
+    uv run python3 scripts/train_sales_forecast.py
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 try:
-    from sklearn.metrics import mean_squared_error
+    from sklearn.metrics import mean_squared_error, mean_absolute_error
     from sklearn.preprocessing import StandardScaler
 except ImportError:
     sys.exit("scikit-learn is required. Run: uv add scikit-learn")
@@ -83,7 +83,7 @@ assert len(test) == n_test_expected, f"Expected {n_test_expected} test rows, got
 assert train["month"].max() < test["month"].min(), "Train/test date overlap detected!"
 
 # ── 3. Feature engineering (no leakage) ───────────────────────────
-def build_features(df: pd.DataFrame, is_train: bool = True) -> pd.DataFrame:
+def build_features(df: pd.DataFrame) -> pd.DataFrame:
     """Build causal features from the revenue series.
 
     All features use only past information — no future leakage.
@@ -109,14 +109,14 @@ def build_features(df: pd.DataFrame, is_train: bool = True) -> pd.DataFrame:
     result["month_sin"] = np.sin(2 * np.pi * month_num / 12)
     result["month_cos"] = np.cos(2 * np.pi * month_num / 12)
 
-    # Second-order feature
-    result["rev_per_cover"] = df["revenue_usd"] / df["covers_served"].replace(0, np.nan)
-
     return result
 
 
-train_feat = build_features(train, is_train=True)
-test_feat = build_features(test, is_train=False)
+# Build features for train
+train_feat = build_features(train)
+
+# Build test features using train tail for warm-up (no future leakage)
+test_feat = build_features(test)
 
 # Fix test features: use actual past values (from train tail) for lags/rolling
 train_last_12 = train["revenue_usd"].values[-12:]
@@ -144,46 +144,39 @@ test_feat = test_feat.dropna().reset_index(drop=True)
 FEATURE_COLS = [
     "lag_1", "lag_2", "lag_3", "lag_12",
     "rolling_mean_3", "rolling_mean_12", "rolling_std_3", "rolling_std_12",
-    "month_sin", "month_cos", "rev_per_cover",
+    "month_sin", "month_cos",
 ]
 
-X_train = train_feat[FEATURE_COLS].values
+X_train_raw = train_feat[FEATURE_COLS].values
 y_train = train_feat["revenue_usd"].values
-X_test = test_feat[FEATURE_COLS].values
+X_test_raw = test_feat[FEATURE_COLS].values
 y_test = test_feat["revenue_usd"].values
 
-print(f"\nFeature matrix shapes — X_train: {X_train.shape}, X_test: {X_test.shape}")
+print(f"\nFeature matrix shapes — X_train: {X_train_raw.shape}, X_test: {X_test_raw.shape}")
 
-# ── 3b. Feature scaling ───────────────────────────────────────────
-# Scale continuous features; cyclic features (month_sin, month_cos)
-# are already in [-1, 1] and need no scaling.
 SCALER_FEATURES = [
     "lag_1", "lag_2", "lag_3", "lag_12",
     "rolling_mean_3", "rolling_mean_12", "rolling_std_3", "rolling_std_12",
-    "rev_per_cover",
 ]
-scaler = StandardScaler()
-X_train_scaled = X_train.copy()
-X_test_scaled = X_test.copy()
-
-# Map feature names to indices
 scaled_indices = [FEATURE_COLS.index(f) for f in SCALER_FEATURES]
-X_train_scaled[:, scaled_indices] = scaler.fit_transform(
-    X_train[:, scaled_indices]
-)
-X_test_scaled[:, scaled_indices] = scaler.transform(
-    X_test[:, scaled_indices]
-)
 
-print(f"Scaled {len(SCALER_FEATURES)} continuous features with StandardScaler.")
-print(f"  Fit on train (mean≈0, std≈1); transform applied to test.")
+# ── 4. Early stopping via temporal validation split (80/20 within train) ──
+# NEVER use the 2-year test set for model selection.
+VAL_FRAC = 0.8
+val_cutoff = int(len(X_train_raw) * VAL_FRAC)
 
-# Use scaled arrays for training
-X_train = X_train_scaled
-X_test = X_test_scaled
+X_fit_raw = X_train_raw[:val_cutoff]
+y_fit = y_train[:val_cutoff]
+X_val_raw = X_train_raw[val_cutoff:]
+y_val = y_train[val_cutoff:]
 
-# ── 4. Train XGBoost model ──────────────────────────────────────
-model = xgb.XGBRegressor(
+fit_scaler = StandardScaler()
+X_fit = X_fit_raw.copy()
+X_val = X_val_raw.copy()
+X_fit[:, scaled_indices] = fit_scaler.fit_transform(X_fit_raw[:, scaled_indices])
+X_val[:, scaled_indices] = fit_scaler.transform(X_val_raw[:, scaled_indices])
+
+selection_model = xgb.XGBRegressor(
     n_estimators=500,
     max_depth=4,
     learning_rate=0.1,
@@ -195,22 +188,43 @@ model = xgb.XGBRegressor(
     early_stopping_rounds=20,
     verbosity=0,
 )
-
-model.fit(
-    X_train, y_train,
-    eval_set=[(X_train, y_train), (X_test, y_test)],
+selection_model.fit(
+    X_fit, y_fit,
+    eval_set=[(X_val, y_val)],
     verbose=False,
 )
+best_iter = selection_model.best_iteration
 
-best_iter = model.best_iteration
-print(f"\nTraining complete. Best iteration: {best_iter}")
+# ── 5. Refit on full train set with selected iterations ──────────
+scaler = StandardScaler()
+X_train = X_train_raw.copy()
+X_test = X_test_raw.copy()
+X_train[:, scaled_indices] = scaler.fit_transform(X_train_raw[:, scaled_indices])
+X_test[:, scaled_indices] = scaler.transform(X_test_raw[:, scaled_indices])
 
-# ── 5. Metrics ──────────────────────────────────────────────────
+model = xgb.XGBRegressor(
+    n_estimators=best_iter + 1,
+    max_depth=4,
+    learning_rate=0.1,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    reg_alpha=1.0,
+    reg_lambda=2.0,
+    random_state=42,
+    verbosity=0,
+)
+model.fit(X_train, y_train, verbose=False)
+
+print(f"\nTraining complete. Selected iterations: {best_iter + 1} "
+      f"(from temporal validation split {int(VAL_FRAC*100)}/{int((1-VAL_FRAC)*100)})")
+
+# ── 6. Metrics on test set ──────────────────────────────────────
 y_pred = model.predict(X_test)
 
-# 5a. MSE + RMSE + MAPE
+# 6a. MSE + RMSE + MAE + MAPE
 mse = mean_squared_error(y_test, y_pred)
 rmse = np.sqrt(mse)
+mae = mean_absolute_error(y_test, y_pred)
 mape = np.mean(np.abs((y_test - y_pred) / y_test)) * 100
 
 print(f"\n{'='*50}")
@@ -218,51 +232,32 @@ print(f"METRICS ON TEST SET ({len(y_test)} months)")
 print(f"{'='*50}")
 print(f"MSE:  {mse:,.2f} USD²")
 print(f"RMSE: {rmse:,.2f} USD")
+print(f"MAE:  {mae:,.2f} USD")
 print(f"MAPE: {mape:.2f}%")
 print(f"\n→ Para Finanzas: El error promedio es de ${rmse:,.0f} USD")
-print(f"  por mes, lo que representa un {mape:.1f}% del valor real.")
+print(f"  por mes (RMSE), o ${mae:,.0f} USD (MAE),")
+print(f"  lo que representa un {mape:.1f}% del valor real (MAPE).")
 print(f"  En los meses de diciembre (ventas altas) el error absoluto")
 print(f"  será mayor, pero el porcentual se mantiene estable.")
 
-# 5b. Gini coefficient (ranking-based)
+# 6b. Gini coefficient (ranking-based)
 def gini(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """Normalized Gini for regression: measures rank-ordering quality.
-
-    Sort by predicted value descending (high→low), then compute how
-    concentrated the actual values are.  Normalises by the perfect
-    model's Gini so that 0 = random and 1 = perfect ranking.
-
-    Interpretation:
-        0.0  — the model ranks months no better than random.
-        1.0  — the model perfectly orders months by revenue.
-        0.7+ — excellent: top predicted months are truly the top ones.
-    """
+    """Normalized Gini for regression: measures rank-ordering quality."""
     n = len(y_true)
     if n < 2:
         return 0.0
 
     def _gini_impl(values: np.ndarray) -> float:
-        """Gini from a descending-sorted array of values."""
-        vals = np.sort(values)[::-1]  # descending
+        vals = np.sort(values)[::-1]
         cumsum = np.cumsum(vals)
-        # Gini = 2*sum(cumsum)/(n*sum(vals)) - (n+1)/n
         return float((2 * np.sum(cumsum) / (n * np.sum(vals)) - (n + 1) / n))
 
-    # Model Gini: sort by y_pred descending, use y_true
-    idx = np.argsort(y_pred)[::-1]  # descending
+    idx = np.argsort(y_pred)[::-1]
     g_model = _gini_impl(y_true[idx])
-
-    # Perfect Gini: sort by y_true descending
     g_perfect = _gini_impl(y_true)
-
-    # Random baseline Gini (expected ~0 for large n)
-    g_random = 0.0
-
-    if g_perfect > g_random:
-        gini_val = max(0.0, min(1.0, (g_model - g_random) / (g_perfect - g_random)))
-    else:
-        gini_val = 0.0
-    return gini_val
+    if g_perfect > 0:
+        return max(0.0, min(1.0, g_model / g_perfect))
+    return 0.0
 
 gini_score = gini(y_test, y_pred)
 print(f"Gini: {gini_score:.4f} (0=aleatorio, 1=perfecto)")
@@ -273,9 +268,8 @@ elif gini_score >= 0.7:
 else:
     print("  ➡️  Gini moderado — aceptable para pronóstico de series temporales.")
 
-# 5c. PSI (Population Stability Index)
+# 6c. PSI (Population Stability Index)
 def psi(expected: np.ndarray, actual: np.ndarray, bins: int = 10) -> float:
-    """Compute Population Stability Index."""
     expected = np.asarray(expected, dtype=np.float64)
     actual = np.asarray(actual, dtype=np.float64)
     if len(expected) < bins or len(actual) < bins:
@@ -287,18 +281,11 @@ def psi(expected: np.ndarray, actual: np.ndarray, bins: int = 10) -> float:
         return 0.0
     if len(np.unique(bin_edges)) < 2:
         return 0.0
-    expected_counts, _ = np.histogram(
-        expected, bins=np.concatenate([[-np.inf], bin_edges, [np.inf]])
-    )
-    actual_counts, _ = np.histogram(
-        actual, bins=np.concatenate([[-np.inf], bin_edges, [np.inf]])
-    )
-    expected_pct = expected_counts / len(expected)
-    actual_pct = actual_counts / len(actual)
-    expected_pct = np.clip(expected_pct, 1e-6, 1.0)
-    actual_pct = np.clip(actual_pct, 1e-6, 1.0)
-    psi_val = np.sum((actual_pct - expected_pct) * np.log(actual_pct / expected_pct))
-    return float(psi_val)
+    expected_counts, _ = np.histogram(expected, bins=np.concatenate([[-np.inf], bin_edges, [np.inf]]))
+    actual_counts, _ = np.histogram(actual, bins=np.concatenate([[-np.inf], bin_edges, [np.inf]]))
+    expected_pct = np.clip(expected_counts / len(expected), 1e-6, 1.0)
+    actual_pct = np.clip(actual_counts / len(actual), 1e-6, 1.0)
+    return float(np.sum((actual_pct - expected_pct) * np.log(actual_pct / expected_pct)))
 
 psi_score = psi(y_train, y_test)
 print(f"PSI:  {psi_score:.4f}")
@@ -314,22 +301,14 @@ elif psi_score > 0.1:
 else:
     print("  ✅ PSI bajo — las distribuciones de train y test son estables.")
 
-# 5d. K2 Score (Kling-Kuioza)
+# 6d. K2 Score (Kling-Kuioza)
 def k2_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """Compute K2 (Kling-Kuioza) score for regression.
-
-    K2 = 1 - sqrt((r-1)² + (α-1)² + (β-1)²)
-    where r = Pearson correlation, α = std_ratio, β = mean_ratio
-    """
     n = len(y_true)
     if n < 2:
         return 0.0
-    r = np.corrcoef(y_true, y_pred)[0, 1]
-    alpha = np.std(y_pred) / (np.std(y_true) + 1e-10)
-    beta = np.mean(y_pred) / (np.mean(y_true) + 1e-10)
-    r = np.clip(r, -1.0, 1.0)
-    alpha = np.clip(alpha, 0.0, 3.0)
-    beta = np.clip(beta, 0.0, 3.0)
+    r = np.clip(np.corrcoef(y_true, y_pred)[0, 1], -1.0, 1.0)
+    alpha = np.clip(np.std(y_pred) / (np.std(y_true) + 1e-10), 0.0, 3.0)
+    beta = np.clip(np.mean(y_pred) / (np.mean(y_true) + 1e-10), 0.0, 3.0)
     k2 = 1.0 - np.sqrt((r - 1)**2 + (alpha - 1)**2 + (beta - 1)**2)
     return max(0.0, min(1.0, k2))
 
@@ -351,7 +330,7 @@ print(f"{'='*50}")
 for name, imp in feat_imp[:5]:
     print(f"  {name:20s} {imp:.4f}")
 
-# ── 6. Visualization ──────────────────────────────────────────────
+# ── 7. Visualization ──────────────────────────────────────────────
 fig, ax = plt.subplots(figsize=(14, 6))
 
 months_test = pd.to_datetime(test_feat["month"])
@@ -393,6 +372,7 @@ ax.set_xlim(months_test.min(), months_test.max())
 metrics_text = (
     f"MAPE: {mape:.1f}%\n"
     f"RMSE: ${rmse:,.0f}\n"
+    f"MAE:  ${mae:,.0f}\n"
     f"Gini: {gini_score:.3f}\n"
     f"K²:   {k2:.3f}"
 )

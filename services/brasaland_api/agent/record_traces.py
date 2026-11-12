@@ -27,6 +27,10 @@ EVAL_QUESTIONS: dict[str, str] = {
     "ceviche_allergens": "¿Qué alérgenos tiene el Ceviche Brasaland?",
     "out_of_scope": "¿Quién ganó el Mundial de fútbol de 1986?",
     "empty_question": "   ",
+    # Hito 8 Part 2 - Routing evals
+    "incident_tool_query": "¿Qué pasó con el ticket INC-0003?",
+    "rag_query": "¿Cuánto cuesta el menú infantil?",
+    "fallback_empty": "   ",
 }
 
 

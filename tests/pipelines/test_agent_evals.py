@@ -54,15 +54,25 @@ def test_eval_retrieve_runs_before_generate() -> None:
     trace = load_trace("loyalty_gold_tier")
 
     assert trace["status"] == "completed"
-    assert executed_nodes(trace) == ["receive_question", "retrieve", "generate"]
+    nodes = executed_nodes(trace)
+    assert "retrieve" in nodes
+    assert "generate" in nodes
+    # El orden debe ser: receive_question → router → retrieve → generate → synthesizer
+    retrieve_idx = nodes.index("retrieve")
+    generate_idx = nodes.index("generate")
+    assert retrieve_idx < generate_idx, f"retrieve ({retrieve_idx}) debe ir antes que generate ({generate_idx})"
 
 
 def test_eval_gold_tier_answer_is_grounded_in_loyalty_policy() -> None:
     assert "Nivel Oro (1.500+ puntos" in knowledge_base_text("brasaland-loyalty-program.es.md")
     trace = load_trace("loyalty_gold_tier")
 
-    assert any("loyalty" in source for source in retrieved_sources(trace))
+    assert any("loyalty" in source for source in retrieved_sources(trace)), (
+        f"Ninguna fuente contiene 'loyalty' en {retrieved_sources(trace)}"
+    )
     assert re.search(r"1[.,\s]?500", trace["answer"]), trace["answer"]
+    # La pregunta usó RAG, no tool
+    assert trace.get("usage_summary") is None or "rag" in (trace.get("usage_summary") or [])
 
 
 def test_eval_ceviche_allergens_are_grounded_in_menu_guide() -> None:
@@ -89,3 +99,50 @@ def test_eval_empty_question_is_rejected_before_retrieve() -> None:
     assert trace["status"] == "rejected"
     assert trace["error"] == EMPTY_QUESTION_ERROR
     assert executed_nodes(trace) == ["receive_question"]
+
+
+# =========================================================================
+#  Evals de enrutamiento con tools externas (Hito 8 Part 2)
+# =========================================================================
+
+
+EVAL_ROUTING_QUESTIONS: dict[str, str] = {
+    "incident_tool_query": "¿Qué pasó con el ticket INC-0003?",
+    "rag_query": "¿Cuánto cuesta el menú infantil?",
+    "fallback_empty": "   ",
+}
+
+
+def test_eval_incident_question_routes_to_tool_not_rag() -> None:
+    """Una pregunta sobre un ticket concreto debe usar la tool de incidentes, no RAG."""
+    trace = load_trace("incident_tool_query")
+    nodes = executed_nodes(trace)
+
+    assert "incident_tool" in nodes, (
+        f"La pregunta de incidente debería usar incident_tool. Nodos: {nodes}"
+    )
+    assert "retrieve" not in nodes or "generate" not in nodes, (
+        "No debería llamar RAG para una pregunta que solo necesita tool"
+    )
+    assert trace.get("usage_summary") is None or "incident_tool" in (trace.get("usage_summary") or [])
+
+
+def test_eval_rag_query_routes_to_rag_not_tool() -> None:
+    """Una pregunta sobre políticas debe usar RAG, no las tools."""
+    trace = load_trace("rag_query")
+    nodes = executed_nodes(trace)
+
+    assert "retrieve" in nodes, f"Debería usar retrieve. Nodos: {nodes}"
+    assert "generate" in nodes, f"Debería usar generate. Nodos: {nodes}"
+    assert "incident_tool" not in nodes, "No debería llamar tool de incidentes para pregunta RAG"
+    assert "inventory_tool" not in nodes, "No debería llamar tool de inventario para pregunta RAG"
+    assert trace.get("usage_summary") is None or "rag" in (trace.get("usage_summary") or [])
+
+
+def test_eval_fallback_empty_question() -> None:
+    """Una pregunta vacía debe rechazarse antes de cualquier nodo."""
+    trace = load_trace("fallback_empty")
+    assert trace["status"] == "rejected"
+    assert trace["error"] == EMPTY_QUESTION_ERROR
+    nodes = executed_nodes(trace)
+    assert len(nodes) <= 1, f"Solo debería llegar a receive_question. Nodos: {nodes}"

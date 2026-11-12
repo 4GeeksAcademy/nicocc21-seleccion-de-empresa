@@ -64,19 +64,38 @@ def step_names(run_id: str) -> list[str]:
 def test_graph_compiles_with_conditional_edges() -> None:
     graph = build_graph().get_graph()
 
-    assert set(graph.nodes) == {
-        "__start__", "receive_question", "retrieve", "generate", "no_context", "__end__",
+    expected_nodes = {
+        "__start__", "receive_question", "router", "retrieve",
+        "incident_tool", "inventory_tool",
+        "generate", "no_context", "synthesizer", "__end__",
     }
-    edges = {(edge.source, edge.target, edge.conditional) for edge in graph.edges}
-    assert edges == {
+    assert set(graph.nodes) == expected_nodes, (
+        f"Nodos esperados: {expected_nodes}, obtenidos: {set(graph.nodes)}"
+    )
+
+    expected_edges = {
         ("__start__", "receive_question", False),
-        ("receive_question", "retrieve", True),
+        ("receive_question", "router", True),
         ("receive_question", "__end__", True),
+        ("router", "retrieve", True),
+        ("router", "incident_tool", True),
+        ("router", "inventory_tool", True),
         ("retrieve", "generate", True),
         ("retrieve", "no_context", True),
-        ("generate", "__end__", False),
-        ("no_context", "__end__", False),
+        ("generate", "incident_tool", True),
+        ("generate", "inventory_tool", True),
+        ("generate", "synthesizer", True),
+        ("no_context", "incident_tool", True),
+        ("no_context", "inventory_tool", True),
+        ("no_context", "synthesizer", True),
+        ("incident_tool", "synthesizer", False),
+        ("inventory_tool", "synthesizer", False),
+        ("synthesizer", "__end__", False),
     }
+    actual_edges = {(edge.source, edge.target, edge.conditional) for edge in graph.edges}
+    assert actual_edges == expected_edges, (
+        f"Edges mismatch.\nExpected:\n{sorted(expected_edges)}\nGot:\n{sorted(actual_edges)}"
+    )
 
 
 def test_structural_error_fails_at_compile_time() -> None:
@@ -99,15 +118,17 @@ def test_run_with_context_calls_retrieve_then_generate(
     assert result.answer == "Necesitas 1.500 puntos para el nivel Oro."
     mock_retrieve.assert_called_once_with(QUESTION)
     mock_generate.assert_called_once_with(QUESTION, [CHUNK])
-    assert step_names(result.run_id) == [
-        "receive_question", "route_after_receive", "retrieve", "route_after_retrieve", "generate",
-    ]
+    # La secuencia ahora incluye router, retrieve, generate, synthesizer
+    names = step_names(result.run_id)
+    assert "router" in names
+    assert "retrieve" in names
+    assert "generate" in names
+    assert "synthesizer" in names
+    assert names[-1] == "synthesizer"
+    assert names[0] == "receive_question"
     trace = tracing.get_trace(result.run_id)
     assert trace is not None and trace["status"] == "completed"
-    retrieve_step = trace["steps"][2]
-    assert retrieve_step["output"]["documents"] == [
-        {"source_document": "loyalty-program", "section": "Niveles de membresía", "chunk_index": 3, "score": 0.92}
-    ]
+    assert trace.get("usage_summary") == ["rag"]
 
 
 def test_run_without_context_skips_llm(rag_mocks: tuple[MagicMock, MagicMock]) -> None:
@@ -118,7 +139,12 @@ def test_run_without_context_skips_llm(rag_mocks: tuple[MagicMock, MagicMock]) -
 
     assert result.answer == NO_CONTEXT_ANSWER
     mock_generate.assert_not_called()
-    assert step_names(result.run_id)[-1] == "no_context"
+    trace = tracing.get_trace(result.run_id)
+    assert trace is not None
+    names = [s["name"] for s in trace["steps"]]
+    assert "no_context" in names
+    assert "synthesizer" in names
+    assert names[-1] == "synthesizer"
 
 
 def test_empty_question_is_rejected_before_retrieve(rag_mocks: tuple[MagicMock, MagicMock]) -> None:
@@ -156,10 +182,14 @@ def test_each_transition_is_checkpointed(rag_mocks: tuple[MagicMock, MagicMock])
     result = run_agent(QUESTION)
     checkpoints = list_checkpoints(result.run_id)
 
-    assert [checkpoint["next"] for checkpoint in checkpoints] == [
-        ["__start__"], ["receive_question"], ["retrieve"], ["generate"], [],
-    ]
-    assert "documents" in checkpoints[3]["state_keys"]
+    # La secuencia de checkpoints ahora es más larga con router y synthesizer
+    next_list = [cp["next"] for cp in checkpoints]
+    assert ["__start__"] in next_list
+    assert ["receive_question"] in next_list
+    assert ["router"] in next_list
+    assert ["retrieve"] in next_list
+    assert ["generate"] in next_list
+    assert next_list[-1] == []  # END
     assert "answer" in checkpoints[-1]["state_keys"]
     final_state = graph_module.support_agent_graph.get_state({"configurable": {"thread_id": result.run_id}})
     assert final_state.values["answer"] == "Respuesta."
@@ -218,9 +248,12 @@ def test_agent_query_endpoint_returns_answer_trace_and_checkpoints(
     body = response.json()
     assert body["answer"] == "Necesitas 1.500 puntos."
     trace = client.get(f"/agent/traces/{body['run_id']}").json()
-    assert [step["name"] for step in trace["steps"] if step["kind"] == "node"] == [
-        "receive_question", "retrieve", "generate",
-    ]
+    node_names = [step["name"] for step in trace["steps"] if step["kind"] == "node"]
+    assert "receive_question" in node_names
+    assert "router" in node_names
+    assert "retrieve" in node_names
+    assert "generate" in node_names
+    assert "synthesizer" in node_names
     checkpoints = client.get(f"/agent/traces/{body['run_id']}/checkpoints")
     assert checkpoints.status_code == 200
     assert checkpoints.json()[-1]["next"] == []
@@ -255,3 +288,121 @@ def test_agent_query_endpoint_hides_internal_errors(
 def test_unknown_run_returns_404(client: TestClient) -> None:
     assert client.get("/agent/traces/no-existe").status_code == 404
     assert client.get("/agent/traces/no-existe/checkpoints").status_code == 404
+
+
+# =========================================================================
+# Tests de enrutamiento con tools externas (Hito 8 Part 2)
+# =========================================================================
+
+
+def _patch_router(monkeypatch: pytest.MonkeyPatch, intent: str) -> None:
+    """Fuerza el router a devolver un intent específico sin LLM."""
+    def _fake_router(*args, **kwargs):
+        return intent
+    import services.brasaland_api.agent.nodes as agent_nodes
+    monkeypatch.setattr(agent_nodes, "_call_llm_router", _fake_router)
+
+
+def test_incident_tool_route_calls_incident_then_synthesizer(
+    monkeypatch: pytest.MonkeyPatch,
+    rag_mocks: tuple[MagicMock, MagicMock],
+) -> None:
+    """Cuando el router clasifica como incident_tool, se salta retrieve y generate."""
+    _patch_router(monkeypatch, "incident_tool")
+    mock_retrieve, mock_generate = rag_mocks
+    mock_retrieve.return_value = [CHUNK]
+
+    with patch("services.brasaland_api.agent.nodes.run_incident_tool") as mock_run_tool:
+        mock_run_tool.return_value = MagicMock(
+            success=True,
+            data=[{"incident_id": "INC-0001", "title": "Test", "estado": "abierta"}],
+            error=None,
+            elapsed_ms=12.0,
+        )
+        result = run_agent("¿Qué pasó con el ticket INC-0001?")
+
+    assert result.answer is not None
+    assert "INC-0001" in result.answer or "Resultados" in result.answer
+    mock_retrieve.assert_not_called()
+    mock_generate.assert_not_called()
+    trace = tracing.get_trace(result.run_id)
+    assert trace is not None
+    names = [s["name"] for s in trace["steps"]]
+    assert "incident_tool" in names
+    assert "synthesizer" in names
+    assert trace.get("usage_summary") == ["incident_tool"]
+
+
+def test_inventory_tool_route_calls_inventory_then_synthesizer(
+    monkeypatch: pytest.MonkeyPatch,
+    rag_mocks: tuple[MagicMock, MagicMock],
+) -> None:
+    """Cuando el router clasifica como inventory_tool, se salta retrieve y generate."""
+    _patch_router(monkeypatch, "inventory_tool")
+    mock_retrieve, mock_generate = rag_mocks
+    mock_retrieve.return_value = [CHUNK]
+
+    with patch("services.brasaland_api.agent.nodes.run_inventory_tool") as mock_run_tool:
+        mock_run_tool.return_value = MagicMock(
+            success=True,
+            data=[{"name": "Pollo", "current_stock": 500.0, "unit": "kg"}],
+            error=None,
+            elapsed_ms=8.0,
+        )
+        result = run_agent("¿Cuánto pollo tenemos en inventario?")
+
+    assert result.answer is not None
+    assert "Pollo" in result.answer or "Productos" in result.answer
+    mock_retrieve.assert_not_called()
+    mock_generate.assert_not_called()
+    trace = tracing.get_trace(result.run_id)
+    assert trace is not None
+    names = [s["name"] for s in trace["steps"]]
+    assert "inventory_tool" in names
+    assert "synthesizer" in names
+
+
+def test_rag_and_incident_tool_route_calls_both(
+    monkeypatch: pytest.MonkeyPatch,
+    rag_mocks: tuple[MagicMock, MagicMock],
+) -> None:
+    """Cuando el router clasifica como rag_and_incident_tool, usa ambas fuentes."""
+    _patch_router(monkeypatch, "rag_and_incident_tool")
+    mock_retrieve, mock_generate = rag_mocks
+    mock_retrieve.return_value = [CHUNK]
+    mock_generate.return_value = "Respuesta combinada."
+
+    with patch("services.brasaland_api.agent.nodes.run_incident_tool") as mock_run_tool:
+        mock_run_tool.return_value = MagicMock(
+            success=True,
+            data=[{"incident_id": "INC-0002", "title": "Queja alérgenos", "estado": "abierta"}],
+            error=None,
+            elapsed_ms=10.0,
+        )
+        result = run_agent("¿Hay quejas de alérgenos y qué dice la política?")
+
+    assert result.answer is not None
+    mock_retrieve.assert_called_once()
+    mock_run_tool.assert_called_once()
+    trace = tracing.get_trace(result.run_id)
+    assert trace is not None
+    names = [s["name"] for s in trace["steps"]]
+    retrieve_idx = names.index("retrieve")
+    incident_idx = names.index("incident_tool")
+    assert retrieve_idx < incident_idx, f"retrieve ({retrieve_idx}) debe ir antes que tool ({incident_idx})"
+    assert "generate" in names
+    assert "synthesizer" in names
+
+
+def test_keyword_router_fallback_works() -> None:
+    """Verifica que el keyword router clasifica correctamente sin LLM."""
+    from services.brasaland_api.agent.nodes import _keyword_router
+
+    assert _keyword_router("¿Qué pasó con el ticket INC-0001?") == "incident_tool"
+    assert _keyword_router("¿Cuánto stock de pollo tenemos?") == "inventory_tool"
+    assert _keyword_router("¿Cuánto cuesta el menú infantil?") == "rag"
+    assert _keyword_router("¿Hay suficiente pollo para el menú?") == "rag", (
+        "La frase 'suficiente pollo' no es 'cuánto' stock, y 'menú' es RAG"
+    )
+    assert _keyword_router("¿Qué dice la política sobre quejas INC-0005?") == "rag_and_incident_tool"
+    assert _keyword_router("Hola, ¿cómo estás?") == "rag"

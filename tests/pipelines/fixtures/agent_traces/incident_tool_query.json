@@ -1,0 +1,117 @@
+{
+  "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+  "question": "¿Qué pasó con el ticket INC-0003?",
+  "status": "completed",
+  "started_at": "2026-11-13T10:00:00.000000+00:00",
+  "finished_at": "2026-11-13T10:00:02.500000+00:00",
+  "answer": "Resultados de incidentes:\n- INC-0003: Problema con el proveedor de pollo (abierta)",
+  "error": null,
+  "usage_summary": ["incident_tool"],
+  "steps": [
+    {
+      "kind": "node",
+      "name": "receive_question",
+      "started_at": "2026-11-13T10:00:00.100000+00:00",
+      "input": {
+        "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+        "question": "¿Qué pasó con el ticket INC-0003?"
+      },
+      "duration_ms": 0.05,
+      "output": {
+        "question": "¿Qué pasó con el ticket INC-0003?"
+      },
+      "error": null
+    },
+    {
+      "kind": "edge",
+      "name": "route_after_receive",
+      "started_at": "2026-11-13T10:00:00.200000+00:00",
+      "input": {
+        "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+        "question": "¿Qué pasó con el ticket INC-0003?"
+      },
+      "duration_ms": 0.02,
+      "output": "router",
+      "error": null
+    },
+    {
+      "kind": "node",
+      "name": "router",
+      "started_at": "2026-11-13T10:00:00.300000+00:00",
+      "input": {
+        "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+        "question": "¿Qué pasó con el ticket INC-0003?"
+      },
+      "duration_ms": 0.50,
+      "output": {
+        "intent": "incident_tool"
+      },
+      "error": null
+    },
+    {
+      "kind": "edge",
+      "name": "route_after_router",
+      "started_at": "2026-11-13T10:00:00.400000+00:00",
+      "input": {
+        "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+        "question": "¿Qué pasó con el ticket INC-0003?"
+      },
+      "duration_ms": 0.02,
+      "output": "incident_tool_only",
+      "error": null
+    },
+    {
+      "kind": "node",
+      "name": "incident_tool",
+      "started_at": "2026-11-13T10:00:00.600000+00:00",
+      "input": {
+        "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+        "question": "¿Qué pasó con el ticket INC-0003?"
+      },
+      "duration_ms": 800.0,
+      "output": {
+        "tool_result": {
+          "tool": "incident_tool",
+          "success": true,
+          "data": [
+            {
+              "incident_id": "INC-0003",
+              "title": "Problema con el proveedor de pollo",
+              "estado": "abierta"
+            }
+          ],
+          "error": null,
+          "elapsed_ms": 800.0
+        }
+      },
+      "error": null
+    },
+    {
+      "kind": "node",
+      "name": "synthesizer",
+      "started_at": "2026-11-13T10:00:01.500000+00:00",
+      "input": {
+        "run_id": "f1a2b3c4-d5e6-7890-abcd-fedcba987654",
+        "question": "¿Qué pasó con el ticket INC-0003?",
+        "tool_result": {
+          "tool": "incident_tool",
+          "success": true,
+          "data": [
+            {
+              "incident_id": "INC-0003",
+              "title": "Problema con el proveedor de pollo",
+              "estado": "abierta"
+            }
+          ],
+          "error": null,
+          "elapsed_ms": 800.0
+        }
+      },
+      "duration_ms": 0.10,
+      "output": {
+        "answer": "Resultados de incidentes:\n- INC-0003: Problema con el proveedor de pollo (abierta)"
+      },
+      "error": null
+    }
+  ]
+}

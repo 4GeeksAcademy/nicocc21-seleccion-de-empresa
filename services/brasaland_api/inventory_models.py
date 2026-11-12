@@ -89,5 +89,3 @@ class IngredientLocation(SQLModel, table=True):
     ingredient_id: int = Field(foreign_key="ingredients.id", primary_key=True)
     location_id: int = Field(primary_key=True)
     minimum_stock: float = Field(default=0.0, ge=0)
-
-${/^$/D}

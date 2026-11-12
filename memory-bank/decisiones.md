@@ -71,3 +71,15 @@
 **Por qué:** Feedback del tutor: un PR incluía `node_modules/.package-lock.json`. Agregar la regla al `.gitignore` no basta si el archivo ya estaba trackeado.
 
 **Impacto:** `git rm -r --cached node_modules` limpia el índice sin borrar los paquetes en disco. Los `.gitignore` de cada app en `uis/*` y el raíz ya cubren `node_modules`, así que no debería volver a colarse.
+
+## 10. Agente de soporte como grafo LangGraph dentro de la API
+
+**Decisión:** El RAG se ejecuta mediante un grafo de LangGraph en `services/brasaland_api/agent/` (`receive_question → retrieve → generate | no_context`). El grafo reutiliza `retrieve` y `generate_answer` de `data/pipelines/rag.py` por separado, nunca `query()`. Tiene checkpointing con `SqliteSaver` (`thread_id = run_id`) y un trace local en TinyDB por corrida.
+
+**Por qué:** Ticket del tech lead y enunciado del proyecto: razonamiento explícito, nodos de una sola responsabilidad, aristas condicionales, compilación antes de ejecutar, estado mínimo y trace consultable. El agente vive en `services/` porque el enunciado lo exige (`services/<agent-service>/`). Esto prevalece sobre la carpeta `/agents/` de la decisión #5. Se eligió un trace local (sin LangSmith) para no depender de servicios externos.
+
+**Impacto:**
+- `POST /agent/query` expone el grafo y convive con `POST /knowledge/query`, que no cambia.
+- Los evals (`tests/pipelines/test_agent_evals.py`) corren sobre traces grabados en `tests/pipelines/fixtures/agent_traces/` con `record_traces`, no en vivo.
+- Las capacidades de la Parte 2 se añaden como nodo y arista condicional en `graph.py`.
+- Se declararon en `pyproject.toml` `langgraph`, `langgraph-checkpoint-sqlite`, `google-genai` y `qdrant-client`. Las dos últimas ya las usaba `rag.py` sin estar declaradas.

@@ -1,21 +1,21 @@
 {
-  "run_id": "8adb268a-a022-4530-88d4-1cea567d29be",
+  "run_id": "ba37b780-efb3-4db0-b4b2-45de380de6dc",
   "question": "   ",
   "status": "rejected",
-  "started_at": "2026-11-12T18:41:38.913406+00:00",
-  "finished_at": "2026-11-12T18:41:38.926378+00:00",
+  "started_at": "2026-11-12T18:44:54.830292+00:00",
+  "finished_at": "2026-11-12T18:44:54.849130+00:00",
   "answer": null,
   "error": "La pregunta no puede estar vacía.",
   "steps": [
     {
       "kind": "node",
       "name": "receive_question",
-      "started_at": "2026-11-12T18:41:38.916748+00:00",
+      "started_at": "2026-11-12T18:44:54.836225+00:00",
       "input": {
-        "run_id": "8adb268a-a022-4530-88d4-1cea567d29be",
+        "run_id": "ba37b780-efb3-4db0-b4b2-45de380de6dc",
         "question": "   "
       },
-      "duration_ms": 0.01,
+      "duration_ms": 0.02,
       "output": {
         "question": "",
         "error": "La pregunta no puede estar vacía."
@@ -25,9 +25,9 @@
     {
       "kind": "edge",
       "name": "route_after_receive",
-      "started_at": "2026-11-12T18:41:38.919593+00:00",
+      "started_at": "2026-11-12T18:44:54.840971+00:00",
       "input": {
-        "run_id": "8adb268a-a022-4530-88d4-1cea567d29be",
+        "run_id": "ba37b780-efb3-4db0-b4b2-45de380de6dc",
         "question": "",
         "error": "La pregunta no puede estar vacía."
       },

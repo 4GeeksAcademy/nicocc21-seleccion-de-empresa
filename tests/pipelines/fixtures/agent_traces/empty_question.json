@@ -1,0 +1,39 @@
+{
+  "run_id": "6e65f721-a66c-44de-ba22-f3c8fd28f315",
+  "question": "   ",
+  "status": "rejected",
+  "started_at": "2026-11-12T18:33:38.626527+00:00",
+  "finished_at": "2026-11-12T18:33:38.657568+00:00",
+  "answer": null,
+  "error": "La pregunta no puede estar vacía.",
+  "steps": [
+    {
+      "kind": "node",
+      "name": "receive_question",
+      "started_at": "2026-11-12T18:33:38.649970+00:00",
+      "input": {
+        "run_id": "6e65f721-a66c-44de-ba22-f3c8fd28f315",
+        "question": "   "
+      },
+      "duration_ms": 0.02,
+      "output": {
+        "question": "",
+        "error": "La pregunta no puede estar vacía."
+      },
+      "error": null
+    },
+    {
+      "kind": "edge",
+      "name": "route_after_receive",
+      "started_at": "2026-11-12T18:33:38.652213+00:00",
+      "input": {
+        "run_id": "6e65f721-a66c-44de-ba22-f3c8fd28f315",
+        "question": "",
+        "error": "La pregunta no puede estar vacía."
+      },
+      "duration_ms": 0.02,
+      "output": "reject",
+      "error": null
+    }
+  ]
+}

@@ -73,8 +73,21 @@ services:
     networks:
       - brasaland-net
 
+  # ─── Qdrant (Base de Datos Vectorial — Hito 7 RAG) ────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: brasaland-qdrant
+    ports:
+      - "6333:6333"   # REST/gRPC
+      - "6334:6334"   # Web UI (Dashboard)
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - brasaland-net
+
 volumes:
   pgdata:
+  qdrant_data:
 
 networks:
   brasaland-net:

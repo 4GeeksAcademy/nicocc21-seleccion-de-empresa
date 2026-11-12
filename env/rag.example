@@ -1,0 +1,30 @@
+# ──────────────────────────────────────────────
+# Brasaland RAG — Configuración de modelos y Qdrant
+# ──────────────────────────────────────────────
+# Copia este archivo como services/brasaland_api/.env si ya existe,
+# o añade estas variables a tu .env existente.
+# NUNCA subas .env al repositorio.
+# ──────────────────────────────────────────────
+
+# === Modelo de Embeddings (4Geeks / Google) ===
+# Modelo de embeddings dedicado — NO reutilizar el de generación.
+# Proporcionado por 4Geeks para estudiantes de AI Engineering.
+EMBEDDING_MODEL_ID=text-embedding-004
+# Clave de API para el modelo de embeddings.
+# La misma GEMINI_API_KEY puede usarse para ambos modelos.
+GEMINI_API_KEY=
+
+# === Modelo de Generación (4Geeks / Google) ===
+# Modelo LLM para generar respuestas a partir del contexto recuperado.
+# Debe ser distinto del modelo de embeddings.
+LLM_MODEL_ID=gemini-2.0-flash
+
+# === Qdrant (Base de Datos Vectorial) ===
+# Conexión a Qdrant — local (Docker) o cloud.
+# Si usas Qdrant Cloud, reemplaza localhost por la URL de tu cluster.
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+# QDRANT_API_KEY=           # Solo si usas Qdrant Cloud
+
+# === Colección Qdrant (fijo según BRIEFING) ===
+QDRANT_COLLECTION=brasaland_knowledge

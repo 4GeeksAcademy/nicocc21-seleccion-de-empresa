@@ -222,11 +222,10 @@ def embed(text: str) -> list[float]:
     """
     client = _get_genai_client()
     model = os.getenv("EMBEDDING_MODEL_ID", "text-embedding-004")
-    config = EmbedContentConfig(model=model)
     result = client.models.embed_content(
         model=model,
         contents=text,
-        config=config,
+        config=EmbedContentConfig(output_dimensionality=EMBEDDING_DIMENSION),
     )
     return result.embeddings[0].values
 

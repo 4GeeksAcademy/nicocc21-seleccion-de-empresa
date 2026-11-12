@@ -1,5 +1,5 @@
 """
-agents/support_agent/tracing.py — Trace local y consultable de cada corrida.
+services/brasaland_api/agent/tracing.py — Trace local y consultable de cada corrida.
 
 Cada corrida se guarda como un documento TinyDB identificado por `run_id`, con
 la pregunta, la respuesta final, el estado y la lista ordenada de pasos
@@ -15,18 +15,16 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from tinydb import Query, TinyDB
 
-from agents.support_agent.state import SupportAgentState
+from services.brasaland_api.agent.state import SupportAgentState
 
-TRACES_DB_FILE = Path(
-    os.getenv(
-        "AGENT_TRACES_DB",
-        str(Path(__file__).resolve().parent / "data" / "traces.json"),
-    )
-)
+AGENT_DATA_DIR = Path(__file__).resolve().parent / "data"
+TRACES_DB_FILE = Path(os.getenv("AGENT_TRACES_DB", str(AGENT_DATA_DIR / "traces.json")))
+
+RunStatus = Literal["completed", "rejected", "error"]
 
 _lock = threading.Lock()
 _T = TypeVar("_T")
@@ -78,15 +76,16 @@ def start_run(run_id: str, question: str) -> None:
         )
 
 
-def finish_run(run_id: str, *, answer: str | None = None, error: str | None = None) -> None:
+def finish_run(
+    run_id: str,
+    *,
+    status: RunStatus,
+    answer: str | None = None,
+    error: str | None = None,
+) -> None:
     with _lock, _get_db() as db:
         db.update(
-            {
-                "status": "error" if error else "completed",
-                "finished_at": _utc_now(),
-                "answer": answer,
-                "error": error,
-            },
+            {"status": status, "finished_at": _utc_now(), "answer": answer, "error": error},
             Query().run_id == run_id,
         )
 

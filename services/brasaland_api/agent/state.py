@@ -1,8 +1,9 @@
 """
-agents/support_agent/state.py — Estado mínimo que viaja entre nodos.
+services/brasaland_api/agent/state.py — Estado mínimo que viaja entre nodos.
 
-Solo contiene lo necesario para una corrida: la pregunta, los chunks
-recuperados y la respuesta. No se guarda historial de conversación.
+Solo contiene lo que un nodo necesita para decidir el siguiente paso: la
+pregunta, los chunks recuperados, la respuesta y un error de validación.
+No se guarda historial de conversación: cada corrida es una pregunta aislada.
 """
 
 from __future__ import annotations
@@ -15,3 +16,4 @@ class SupportAgentState(TypedDict):
     question: str
     documents: NotRequired[list[dict[str, Any]]]
     answer: NotRequired[str]
+    error: NotRequired[str]

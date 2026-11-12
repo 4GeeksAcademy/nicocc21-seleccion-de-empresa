@@ -13,4 +13,4 @@ build/
 !.env.example
 
 # Traces locales del agente de soporte (generados en runtime)
-agents/support_agent/data/
+services/brasaland_api/agent/data/

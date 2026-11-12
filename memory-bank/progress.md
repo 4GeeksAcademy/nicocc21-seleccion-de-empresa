@@ -69,3 +69,15 @@ El backend declara sus dependencias Python en `pyproject.toml`; cada app en `uis
 - `uis/website/` y `uis/backoffice/` son apps Next.js independientes con su propio `package.json`.
 - El backoffice importa la lógica de negocio desde `src/hito2/` — no duplica código.
 - Los datos en `sample-data.ts` son simulados pero representativos de las 14 sedes.
+
+## Agente de soporte con LangGraph — Parte 1
+
+| Componente | Estado | Descripción |
+|------------|--------|-------------|
+| `agents/support_agent/` | ✅ Creado | Grafo `retrieve → generate \| no_context`, compilado al importar el módulo |
+| `agents/support_agent/tracing.py` | ✅ Creado | Trace por corrida en TinyDB (`AGENT_TRACES_DB`) |
+| `POST /knowledge/query` | ✅ Migrado | Usa el grafo; devuelve `answer` + `run_id` |
+| `GET /agent/traces/{run_id}` | ✅ Creado | Consulta del trace de una corrida |
+| `tests/agents/` | ✅ Creado | Estructura del grafo, enrutamiento, trace y API (con mocks) |
+
+Pendiente: Parte 2 (nuevas tools como nodos). `services/Dockerfile` no copia `data/pipelines/` ni `agents/`, por lo que la imagen Docker aún no incluye el RAG.

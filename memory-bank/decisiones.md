@@ -71,3 +71,11 @@
 **Por qué:** Feedback del tutor: un PR incluía `node_modules/.package-lock.json`. Agregar la regla al `.gitignore` no basta si el archivo ya estaba trackeado.
 
 **Impacto:** `git rm -r --cached node_modules` limpia el índice sin borrar los paquetes en disco. Los `.gitignore` de cada app en `uis/*` y el raíz ya cubren `node_modules`, así que no debería volver a colarse.
+
+## 10. Agente de soporte como grafo LangGraph con trace local
+
+**Decisión:** El RAG se ejecuta mediante un grafo de LangGraph en `agents/support_agent/` (`retrieve → generate | no_context`) que reutiliza `retrieve` y `generate_answer` de `data/pipelines/rag.py`. Cada corrida se traza localmente en TinyDB y se consulta en `GET /agent/traces/{run_id}`.
+
+**Por qué:** Ticket del tech lead: el razonamiento debe ser explícito, con nodos de una sola responsabilidad, un grafo compilado antes de ejecutar, un estado mínimo y un trace por corrida. Se eligió un trace local (sin LangSmith) para no depender de servicios externos ni de credenciales.
+
+**Impacto:** `POST /knowledge/query` mantiene `answer` y añade `run_id`. Cuando no hay contexto, el nodo `no_context` responde sin llamar al LLM. Las capacidades nuevas (Parte 2) se añaden como nodo y arista condicional en `graph.py`. Se declararon en `pyproject.toml` `langgraph`, `google-genai` y `qdrant-client`; las dos últimas ya las usaba `rag.py` sin estar declaradas.

@@ -74,10 +74,12 @@ El backend declara sus dependencias Python en `pyproject.toml`; cada app en `uis
 
 | Componente | Estado | Descripción |
 |------------|--------|-------------|
-| `agents/support_agent/` | ✅ Creado | Grafo `retrieve → generate \| no_context`, compilado al importar el módulo |
-| `agents/support_agent/tracing.py` | ✅ Creado | Trace por corrida en TinyDB (`AGENT_TRACES_DB`) |
-| `POST /knowledge/query` | ✅ Migrado | Usa el grafo; devuelve `answer` + `run_id` |
-| `GET /agent/traces/{run_id}` | ✅ Creado | Consulta del trace de una corrida |
-| `tests/agents/` | ✅ Creado | Estructura del grafo, enrutamiento, trace y API (con mocks) |
+| `services/brasaland_api/agent/` | ✅ Creado | Grafo `receive_question → retrieve → generate \| no_context`, compilado al importar el módulo |
+| Checkpointing | ✅ Creado | `SqliteSaver` por `run_id` (`AGENT_CHECKPOINTS_DB`) |
+| Trace | ✅ Creado | TinyDB por `run_id` (`AGENT_TRACES_DB`) |
+| `POST /agent/query` | ✅ Creado | Invoca el grafo; 400 si la pregunta está vacía, 503 sin detalles internos |
+| `GET /agent/traces/{run_id}[/checkpoints]` | ✅ Creado | Consulta del trace y de los checkpoints |
+| `tests/pipelines/test_agent_graph.py` | ✅ Creado | Estructura, enrutamiento, checkpoints y endpoints (con mocks) |
+| `tests/pipelines/test_agent_evals.py` | ✅ Creado | 5 evals sobre traces grabados (orden, anclaje x2, sin contexto, pregunta vacía) |
 
-Pendiente: Parte 2 (nuevas tools como nodos). `services/Dockerfile` no copia `data/pipelines/` ni `agents/`, por lo que la imagen Docker aún no incluye el RAG.
+Pendiente: Parte 2 (nuevas tools como nodos). `services/Dockerfile` no copia `data/pipelines/`, por lo que la imagen Docker aún no incluye el RAG.

@@ -49,8 +49,11 @@ def main(case_ids: list[str]) -> int:
         try:
             run_id = run_agent(question).run_id
         except AgentRunError as exc:
-            run_id = exc.run_id
+            # Una corrida fallida no es evidencia válida: no sobrescribe el fixture.
+            failed_trace = tracing.get_trace(exc.run_id) or {}
+            print(f"[error] {case_id}: {failed_trace.get('error')} (no se guardó)", file=sys.stderr)
             failures += 1
+            continue
         trace = tracing.get_trace(run_id)
         output_file = FIXTURES_DIR / f"{case_id}.json"
         output_file.write_text(json.dumps(trace, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -58,7 +61,7 @@ def main(case_ids: list[str]) -> int:
         print(f"[{status}] {case_id} → {output_file.relative_to(REPO_ROOT)}")
 
     if failures:
-        print(f"{failures} corrida(s) fallaron; revisa el campo 'error' de cada trace.", file=sys.stderr)
+        print(f"{failures} corrida(s) fallaron; revisa las credenciales y que Qdrant esté indexado.", file=sys.stderr)
     return 1 if failures else 0
 
 

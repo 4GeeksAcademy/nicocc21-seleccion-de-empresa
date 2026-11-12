@@ -11,3 +11,6 @@ build/
 .env
 .env.*
 !.env.example
+
+# Traces locales del agente de soporte (generados en runtime)
+agents/support_agent/data/

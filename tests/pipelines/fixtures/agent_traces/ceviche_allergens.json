@@ -1,0 +1,49 @@
+{
+  "run_id": "858f7b3a-b73f-4486-a45f-3982d5e95dcc",
+  "question": "¿Qué alérgenos tiene el Ceviche Brasaland?",
+  "status": "error",
+  "started_at": "2026-11-12T18:41:38.879332+00:00",
+  "finished_at": "2026-11-12T18:41:38.893365+00:00",
+  "answer": null,
+  "error": "ValueError: No API key was provided. Please pass a valid API key. Learn how to create an API key at https://aistudio.google.com/docs/api-key.",
+  "steps": [
+    {
+      "kind": "node",
+      "name": "receive_question",
+      "started_at": "2026-11-12T18:41:38.882800+00:00",
+      "input": {
+        "run_id": "858f7b3a-b73f-4486-a45f-3982d5e95dcc",
+        "question": "¿Qué alérgenos tiene el Ceviche Brasaland?"
+      },
+      "duration_ms": 0.02,
+      "output": {
+        "question": "¿Qué alérgenos tiene el Ceviche Brasaland?"
+      },
+      "error": null
+    },
+    {
+      "kind": "edge",
+      "name": "route_after_receive",
+      "started_at": "2026-11-12T18:41:38.885251+00:00",
+      "input": {
+        "run_id": "858f7b3a-b73f-4486-a45f-3982d5e95dcc",
+        "question": "¿Qué alérgenos tiene el Ceviche Brasaland?"
+      },
+      "duration_ms": 0.02,
+      "output": "retrieve",
+      "error": null
+    },
+    {
+      "kind": "node",
+      "name": "retrieve",
+      "started_at": "2026-11-12T18:41:38.888071+00:00",
+      "input": {
+        "run_id": "858f7b3a-b73f-4486-a45f-3982d5e95dcc",
+        "question": "¿Qué alérgenos tiene el Ceviche Brasaland?"
+      },
+      "duration_ms": 0.36,
+      "output": null,
+      "error": "ValueError: No API key was provided. Please pass a valid API key. Learn how to create an API key at https://aistudio.google.com/docs/api-key."
+    }
+  ]
+}

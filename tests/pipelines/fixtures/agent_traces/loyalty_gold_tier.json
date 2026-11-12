@@ -1,0 +1,49 @@
+{
+  "run_id": "5d82e25b-c2f7-4db9-8700-38610eafab29",
+  "question": "¿Cuántos puntos necesito para alcanzar el nivel Oro de Brasa Points?",
+  "status": "error",
+  "started_at": "2026-11-12T18:41:38.854130+00:00",
+  "finished_at": "2026-11-12T18:41:38.877438+00:00",
+  "answer": null,
+  "error": "ValueError: No API key was provided. Please pass a valid API key. Learn how to create an API key at https://aistudio.google.com/docs/api-key.",
+  "steps": [
+    {
+      "kind": "node",
+      "name": "receive_question",
+      "started_at": "2026-11-12T18:41:38.859911+00:00",
+      "input": {
+        "run_id": "5d82e25b-c2f7-4db9-8700-38610eafab29",
+        "question": "¿Cuántos puntos necesito para alcanzar el nivel Oro de Brasa Points?"
+      },
+      "duration_ms": 0.02,
+      "output": {
+        "question": "¿Cuántos puntos necesito para alcanzar el nivel Oro de Brasa Points?"
+      },
+      "error": null
+    },
+    {
+      "kind": "edge",
+      "name": "route_after_receive",
+      "started_at": "2026-11-12T18:41:38.863040+00:00",
+      "input": {
+        "run_id": "5d82e25b-c2f7-4db9-8700-38610eafab29",
+        "question": "¿Cuántos puntos necesito para alcanzar el nivel Oro de Brasa Points?"
+      },
+      "duration_ms": 0.03,
+      "output": "retrieve",
+      "error": null
+    },
+    {
+      "kind": "node",
+      "name": "retrieve",
+      "started_at": "2026-11-12T18:41:38.865861+00:00",
+      "input": {
+        "run_id": "5d82e25b-c2f7-4db9-8700-38610eafab29",
+        "question": "¿Cuántos puntos necesito para alcanzar el nivel Oro de Brasa Points?"
+      },
+      "duration_ms": 1.55,
+      "output": null,
+      "error": "ValueError: No API key was provided. Please pass a valid API key. Learn how to create an API key at https://aistudio.google.com/docs/api-key."
+    }
+  ]
+}

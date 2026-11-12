@@ -1,0 +1,77 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.2, pytest-8.4.2, pluggy-1.6.0 -- /workspaces/nicocc21-seleccion-de-empresa/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspaces/nicocc21-seleccion-de-empresa
+configfile: pyproject.toml
+plugins: cov-6.3.0, anyio-4.14.2, langsmith-0.14.17
+collecting ... collected 5 items
+
+tests/pipelines/test_agent_evals.py::test_eval_retrieve_runs_before_generate FAILED [ 20%]
+tests/pipelines/test_agent_evals.py::test_eval_gold_tier_answer_is_grounded_in_loyalty_policy FAILED [ 40%]
+tests/pipelines/test_agent_evals.py::test_eval_ceviche_allergens_are_grounded_in_menu_guide FAILED [ 60%]
+tests/pipelines/test_agent_evals.py::test_eval_out_of_scope_question_routes_to_no_context FAILED [ 80%]
+tests/pipelines/test_agent_evals.py::test_eval_empty_question_is_rejected_before_retrieve PASSED [100%]
+
+=================================== FAILURES ===================================
+___________________ test_eval_retrieve_runs_before_generate ____________________
+
+    def test_eval_retrieve_runs_before_generate() -> None:
+        trace = load_trace("loyalty_gold_tier")
+    
+>       assert trace["status"] == "completed"
+E       AssertionError: assert 'error' == 'completed'
+E         
+E         - completed
+E         + error
+
+tests/pipelines/test_agent_evals.py:56: AssertionError
+___________ test_eval_gold_tier_answer_is_grounded_in_loyalty_policy ___________
+
+    def test_eval_gold_tier_answer_is_grounded_in_loyalty_policy() -> None:
+        assert "Nivel Oro (1.500+ puntos" in knowledge_base_text("brasaland-loyalty-program.es.md")
+        trace = load_trace("loyalty_gold_tier")
+    
+>       assert any("loyalty" in source for source in retrieved_sources(trace))
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/pipelines/test_agent_evals.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trace = {'answer': None, 'error': 'ValueError: No API key was provided. Please pass a valid API key. Learn how to create an AP...-11-12T18:41:38.877438+00:00', 'question': '¿Cuántos puntos necesito para alcanzar el nivel Oro de Brasa Points?', ...}
+
+    def retrieved_sources(trace: dict[str, Any]) -> list[str]:
+        retrieve_step = next(step for step in trace["steps"] if step["name"] == "retrieve")
+>       return [doc["source_document"] for doc in retrieve_step["output"]["documents"]]
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'NoneType' object is not subscriptable
+
+tests/pipelines/test_agent_evals.py:46: TypeError
+____________ test_eval_ceviche_allergens_are_grounded_in_menu_guide ____________
+
+    def test_eval_ceviche_allergens_are_grounded_in_menu_guide() -> None:
+        assert "| Ceviche Brasaland | Pescado |" in knowledge_base_text("brasaland-menu-allergens.es.md")
+        trace = load_trace("ceviche_allergens")
+    
+>       assert trace["status"] == "completed"
+E       AssertionError: assert 'error' == 'completed'
+E         
+E         - completed
+E         + error
+
+tests/pipelines/test_agent_evals.py:72: AssertionError
+_____________ test_eval_out_of_scope_question_routes_to_no_context _____________
+
+    def test_eval_out_of_scope_question_routes_to_no_context() -> None:
+        trace = load_trace("out_of_scope")
+    
+>       route = next(step for step in trace["steps"] if step["name"] == "route_after_retrieve")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       StopIteration
+
+tests/pipelines/test_agent_evals.py:80: StopIteration
+=========================== short test summary info ============================
+FAILED tests/pipelines/test_agent_evals.py::test_eval_retrieve_runs_before_generate
+FAILED tests/pipelines/test_agent_evals.py::test_eval_gold_tier_answer_is_grounded_in_loyalty_policy
+FAILED tests/pipelines/test_agent_evals.py::test_eval_ceviche_allergens_are_grounded_in_menu_guide
+FAILED tests/pipelines/test_agent_evals.py::test_eval_out_of_scope_question_routes_to_no_context
+========================= 4 failed, 1 passed in 1.48s ==========================

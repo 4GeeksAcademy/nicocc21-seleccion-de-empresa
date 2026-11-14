@@ -22,6 +22,10 @@ dependencies = [
     "xgboost>=3.2.0",
     "matplotlib>=3.11.2",
     "numpy>=2.4.6",
+    "fastmcp",
+    "mcpauth",
+    "langchain-mcp-adapters",
+    "mcp",
 ]
 
 [dependency-groups]
@@ -29,10 +33,11 @@ dev = [
     "httpx>=0.27.0,<1.0.0",
     "pytest>=8.0.0,<9.0.0",
     "pytest-cov>=5.0.0,<7.0.0",
+    "pytest-asyncio>=0.24.0,<1.0.0",
 ]
 
 [tool.setuptools.packages.find]
-include = ["services*", "data*"]
+include = ["services*", "data*", "agents*", "mcps*"]
 
 [build-system]
 requires = ["setuptools>=68.0"]

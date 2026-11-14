@@ -1,6 +1,31 @@
 # Estado Actual del Proyecto
 
-> Última revisión documental: 14 de octubre de 2026. Las tablas históricas se conservan; esta revisión verifica código, no el funcionamiento del despliegue.
+> Última revisión: 14 de noviembre de 2026. Se actualiza con la implementación del Hito 8 (MCP Server + Support Agent).
+
+## Hito 8 — MCP Server y Agente de Soporte ✅
+
+| Componente | Estado | Descripción |
+|------------|--------|-------------|
+| `mcps/brasaland_mcp/server.py` | ✅ Completo | FastMCP v4 con Streamable HTTP sobre uvicorn |
+| `mcps/brasaland_mcp/config.py` | ✅ Completo | Config centralizada con `AUTH_DISABLED` para dev |
+| `mcps/brasaland_mcp/middleware.py` | ✅ Completo | Auth middleware con validación de scopes OAuth |
+| `mcps/brasaland_mcp/tools/incidents.py` | ✅ Completo | 6 tools CRUD de incidencias |
+| `mcps/brasaland_mcp/tools/inventory.py` | ✅ Completo | query_inventory (read-only) + reject_inventory_write |
+| `mcps/brasaland_mcp/client.py` | ✅ Completo | BrasalandMCPClient con OAuth client_credentials |
+| `mcps/brasaland_mcp/README.md` | ✅ Completo | Documentación con arquitectura y códigos de error |
+| `agents/support_agent/agent.py` | ✅ Completo | SupportAgent con CLI interactiva |
+| `agents/support_agent/tests/test_agent.py` | ✅ Completo | 10 tests unitarios con mock |
+| `env/mcp` + `env/mcp.example` | ✅ Completo | Config dev con `MCP_AUTH_DISABLED=1` |
+| `template/agents/tools/DEPRECATED.md` | ✅ Completo | Guía de migración: API directa → MCP Client |
+| PR #28 — `feature/mcp-oauth-tools` | ✅ Abierto | 2 commits: implementación + fix auth |
+
+### Detalle técnico
+
+- **Transporte:** Streamable HTTP (no stdio) — servido con uvicorn en puerto 8081
+- **Auth:** OAuth 2.1 via mcpauth con grant `client_credentials`
+- **Scopes:** `incidents:read`, `incidents:write`, `inventory:read`
+- **Dev mode:** `MCP_AUTH_DISABLED=1` desactiva middleware + mcpauth
+- **Tools validadas con SDK:** list_incidents (154 abiertas), get_incident (INC-0001), summary (500 total), create (INC-0501), update_status, query_inventory (error controlado sin DB)
 
 ## Estado verificado para la fase de telemetría
 

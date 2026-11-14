@@ -1,0 +1,31 @@
+# Configuración del Servidor MCP de Brasaland
+# Copia este archivo como env/mcp (sin extensión) y ajusta los valores.
+
+# -- Servidor HTTP (Streamable HTTP) --
+MCP_HOST=0.0.0.0
+MCP_PORT=8081
+MCP_LOG_LEVEL=INFO
+
+# ── Modo desarrollo ──────────────────────────────────────────────────
+# Pon MCP_AUTH_DISABLED=1 para saltar la autenticación OAuth.
+# Útil para probar en MCP Playground. NUNCA en producción.
+MCP_AUTH_DISABLED=1
+
+# -- OAuth / MCP Auth --
+# URL del Authorization Server OAuth 2.1
+OAUTH_ISSUER=http://localhost:8080
+# JWKS endpoint para verificar tokens
+OAUTH_JWKS_URL=http://localhost:8080/.well-known/jwks.json
+# Client secret (solo para desarrollo, en producción usar JWKS asimétrica)
+OAUTH_CLIENT_SECRET=dev-secret-change-in-prod
+
+# -- Base de datos (inventario) --
+# Se reutiliza la misma DATABASE_URL del backend de Brasaland
+DATABASE_URL=postgresql://user:password@host:6543/postgres
+
+# -- Cliente MCP (desde agentes) --
+# URL del servidor MCP para que los agentes se conecten
+MCP_SERVER_URL=http://localhost:8081/mcp
+# Credenciales OAuth para el agente (client_credentials grant)
+MCP_CLIENT_ID=brasaland-agent
+MCP_CLIENT_SECRET=dev-secret-change-in-prod

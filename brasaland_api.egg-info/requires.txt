@@ -12,5 +12,11 @@ psycopg2-binary<3.0.0,>=2.9.9
 jsonschema[format-nongpl]<5.0.0,>=4.23.0
 pandas<3.0.0,>=2.2.0
 prefect<4.0.0,>=3.0.0
-qdrant-client>=1.20.0
-google-genai>=3.0.0
+scikit-learn>=1.9.1
+xgboost>=3.2.0
+matplotlib>=3.11.2
+numpy>=2.4.6
+fastmcp
+mcpauth
+langchain-mcp-adapters
+mcp

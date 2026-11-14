@@ -1,2 +1,4 @@
+agents
 data
+mcps
 services

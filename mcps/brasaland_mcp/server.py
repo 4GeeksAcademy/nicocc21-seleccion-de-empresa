@@ -29,15 +29,16 @@ _env_path = _ROOT / "services" / "brasaland_api" / ".env"
 if _env_path.exists():
     load_dotenv(_env_path)
 
-# Cargar .env específico de MCP si existe
-_mcp_env_path = _ROOT / "env" / "mcp.example"
-if _mcp_env_path.exists():
-    load_dotenv(_mcp_env_path)
+# Cargar .env específico de MCP (primero mcp, fallback a mcp.example)
+for _mcp_candidate in ("mcp", "mcp.example"):
+    _mcp_env_path = _ROOT / "env" / _mcp_candidate
+    if _mcp_env_path.exists():
+        load_dotenv(_mcp_env_path)
+        break
 
 from fastmcp import FastMCP
 from mcpauth import MCPAuth
 from mcpauth.config import AuthServerConfig, AuthorizationServerMetadata, AuthServerType
-from starlette.middleware import Middleware as StarletteMiddleware
 from starlette.types import ASGIApp
 
 from mcps.brasaland_mcp import config
@@ -131,9 +132,12 @@ def main() -> None:
 
     server = create_server()
 
-    # Configurar OAuth
-    oauth_config = create_oauth_config()
-    mcpauth = MCPAuth(server=oauth_config)
+    # Configurar OAuth (solo si no está en modo desarrollo)
+    if config.AUTH_DISABLED:
+        mcpauth = None
+    else:
+        oauth_config = create_oauth_config()
+        mcpauth = MCPAuth(server=oauth_config)
 
     # Crear middleware Bearer Token de mcpauth
     # Nota: mcpauth devuelve una clase BaseHTTPMiddleware, NO una instancia.
@@ -151,7 +155,9 @@ def main() -> None:
     # el token JWT, y BrasalandAuthMiddleware (FastMCP) valida los scopes por tool.
 
     # Añadir nuestro middleware de autorización (FastMCP nativo)
-    server.add_middleware(BrasalandAuthMiddleware())
+    # Solo cuando la autenticación está habilitada
+    if not config.AUTH_DISABLED:
+        server.add_middleware(BrasalandAuthMiddleware())
 
     _logger.info("Servidor listo. Escuchando en %s:%s", config.HOST, config.PORT)
     _logger.info("Transporte: Streamable HTTP")
@@ -180,24 +186,32 @@ def main() -> None:
     )
 
 
-def _wrap_with_middleware(app: ASGIApp, mcpauth: MCPAuth) -> ASGIApp:
+def _wrap_with_middleware(app: ASGIApp, mcpauth: MCPAuth | None) -> ASGIApp:
     """Envuelve la app con los middlewares necesarios (CORS + OAuth).
 
     Aplica:
       1. CORS (permitir orígenes externos)
-      2. mcpauth bearer token middleware (valida JWT)
+      2. mcpauth bearer token middleware (valida JWT) — solo si no está
+         deshabilitado por MCP_AUTH_DISABLED=1.
+
+    En modo desarrollo (MCP_AUTH_DISABLED=1) se salta mcpauth,
+    permitiendo probar con MCP Playground sin token JWT.
     """
-    from starlette.middleware import Middleware as StarletteMiddleware
     from starlette.middleware.cors import CORSMiddleware
 
-    # Configurar CORS
-    cors_middleware = StarletteMiddleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type"],
-        allow_credentials=True,
-    )
+    if config.AUTH_DISABLED:
+        # Modo desarrollo — solo CORS, sin mcpauth
+        _logger.warning(
+            "⚠️  MCP_AUTH_DISABLED=1 — autenticación deshabilitada. "
+            "No usar en producción."
+        )
+        return CORSMiddleware(
+            app,
+            allow_origins=["*"],
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=True,
+        )
 
     # Middleware de mcpauth para validar tokens JWT
     # bearer_auth_middleware retorna una CLASE (type[BaseHTTPMiddleware]),
@@ -210,10 +224,14 @@ def _wrap_with_middleware(app: ASGIApp, mcpauth: MCPAuth) -> ASGIApp:
         show_error_details=True,
     )
 
-    # Instanciamos el middleware con la app
-    app_with_bearer = bearer_cls(app)
-    # Envolvemos con CORS
-    return cors_middleware(app_with_bearer)  # type: ignore[arg-type]
+    # Instanciamos el middleware con la app y envolvemos con CORS
+    return CORSMiddleware(
+        bearer_cls(app),
+        allow_origins=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+        allow_credentials=True,
+    )
 
 
 if __name__ == "__main__":

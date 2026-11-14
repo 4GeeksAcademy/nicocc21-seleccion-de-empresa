@@ -2,6 +2,10 @@
 
 Implementa validación de tokens JWT Bearer y scopes usando mcpauth.
 Se integra con FastMCP a través del sistema de Middleware nativo.
+
+Modo desarrollo:
+  Si MCP_AUTH_DISABLED=1, todas las validaciones se saltan para
+  permitir pruebas sin token (ej. MCP Playground).
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from mcps.brasaland_mcp.tools.incidents import (
 from mcps.brasaland_mcp.tools.inventory import (
     SCOPE_INVENTORY_READ,
 )
+from mcps.brasaland_mcp import config as mcp_config
 
 _logger = logging.getLogger(__name__)
 
@@ -75,6 +80,14 @@ class BrasalandAuthMiddleware(Middleware):
         trazabilidad completa.
         """
         tool_name = self._get_tool_name(context)
+
+        # ── Modo desarrollo: saltar toda validación ──────────────────
+        if mcp_config.AUTH_DISABLED:
+            _logger.info(
+                "Tool '%s' ejecutada (MCP_AUTH_DISABLED=1, sin validación)",
+                tool_name,
+            )
+            return await call_next
 
         # Verificar si la tool requiere scopes
         required_scopes = _TOOL_SCOPES.get(tool_name)

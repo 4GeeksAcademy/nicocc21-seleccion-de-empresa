@@ -6,6 +6,11 @@ MCP_HOST=0.0.0.0
 MCP_PORT=8081
 MCP_LOG_LEVEL=INFO
 
+# ── Modo desarrollo ──────────────────────────────────────────────────
+# Pon MCP_AUTH_DISABLED=1 para saltar la autenticación OAuth.
+# Útil para probar en MCP Playground. NUNCA en producción.
+MCP_AUTH_DISABLED=1
+
 # -- OAuth / MCP Auth --
 # URL del Authorization Server OAuth 2.1
 OAUTH_ISSUER=http://localhost:8080

@@ -44,5 +44,11 @@ SCOPE_INVENTORY_READ = "inventory:read"
 # -- Bases de datos externas -------------------------------------------
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
+# -- Modo desarrollo (saltar autenticación) ---------------------------
+# En producción esto debe estar en False (o no definido).
+# En desarrollo/testing (MCP Playground) se puede poner en True para
+# saltar la validación de tokens JWT.
+AUTH_DISABLED = _bool(os.getenv("MCP_AUTH_DISABLED"), default=False)
+
 # -- Logging -----------------------------------------------------------
 LOG_LEVEL = os.getenv("MCP_LOG_LEVEL", "INFO")

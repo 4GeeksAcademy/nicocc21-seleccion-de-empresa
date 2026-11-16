@@ -22,6 +22,8 @@ dependencies = [
     "xgboost>=3.2.0",
     "matplotlib>=3.11.2",
     "numpy>=2.4.6",
+    "markitdown>=0.1.9",
+    "py-readability-metrics>=1.4.5",
 ]
 
 [dependency-groups]

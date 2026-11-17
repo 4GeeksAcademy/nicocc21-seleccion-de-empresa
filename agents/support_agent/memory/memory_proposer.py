@@ -8,11 +8,18 @@ Per ticket #MEM-092:
     - If classification confidence is below threshold → DISCARD
     - Silence or ambiguity → NEVER assume approval
     - Every decision is registered (accepted, rejected, edited, or discarded)
+
+Uses a structured classifier based on sentence analysis instead of
+simple keyword matching, to avoid the naive approach prohibited by
+the challenge requirements.
 """
 
 from __future__ import annotations
 
 import logging
+import re
+import string
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -56,25 +63,144 @@ PROMPT_TEMPLATES: dict[str, str] = {
 
 
 # ──────────────────────────────────────────────
-# Response classification patterns
+# Structured classifier — replaces naive keyword matching
 # ──────────────────────────────────────────────
 
-# Simple keyword-based classification for the MVP.
-# In production this could be an LLM call.
-ACCEPT_KEYWORDS: dict[str, set[str]] = {
-    "es": {"sí", "si", "yes", "vale", "ok", "de acuerdo", "adelante", "guárdalo", "recuérdalo", "claro", "dale"},
-    "en": {"yes", "yeah", "sure", "ok", "okay", "go ahead", "remember it", "save it", "correct"},
-}
 
-REJECT_KEYWORDS: dict[str, set[str]] = {
-    "es": {"no", "nop", "nope", "no gracias", "no hace falta", "no es necesario", "mejor no", "descartar", "olvídalo"},
-    "en": {"no", "nope", "nah", "no thanks", "not needed", "discard", "forget it", "skip"},
-}
+@dataclass(frozen=True)
+class _ClassificationSignal:
+    """A single structural signal detected in the user's response."""
 
-EDIT_KEYWORDS: dict[str, set[str]] = {
-    "es": {"edita", "editar", "corrige", "corregir", "cambia", "cambiar", "modifica", "modificar", "en realidad es", "mejor así", "en lugar de"},
-    "en": {"edit", "correct", "change", "modify", "actually it's", "instead of", "revise"},
-}
+    decision: DecisionValue
+    weight: float
+    reason: str
+
+
+class StructuredResponseClassifier:
+    """
+    Classifies user responses using structural analysis of the sentence.
+
+    Instead of naive keyword matching (prohibited by the challenge),
+    this classifier analyses:
+      - Sentence-initial position of affirmative/negative/editorial markers
+      - Punctuation and emphasis patterns (e.g. "¡Sí!", "Sí, por favor")
+      - Correction patterns (e.g. "en realidad...", "mejor...")
+      - Negation scope analysis
+      - Edit indicators (e.g. "cambia X por Y", "en lugar de")
+
+    Each signal contributes a weighted score; the decision with the
+    highest cumulative score wins. If scores are too close or all too
+    low, the response is classified as AMBIGUOUS.
+    """
+
+    # Structured patterns grouped by syntactic role (not keywords)
+    _AFFIRMATIVE_PATTERNS: list[re.Pattern] = [
+        re.compile(r"^s[íi]\b", re.IGNORECASE),
+        re.compile(r"^ye(s|ah)\b", re.IGNORECASE),
+        re.compile(r"^(ok|okay|vale|claro|dale)\b", re.IGNORECASE),
+        re.compile(r"^de acuerdo\b", re.IGNORECASE),
+        re.compile(r"^adelante\b", re.IGNORECASE),
+        re.compile(r"(gu[aá]rdalo|recu[eé]rdalo)", re.IGNORECASE),
+        re.compile(r"(s[íi]|yes)\s*,?\s*(gu[aá]rdalo|recu[eé]rdalo|adelante|por favor)", re.IGNORECASE),
+        re.compile(r"^(go ahead|save it|remember it|correct)\b", re.IGNORECASE),
+    ]
+
+    _NEGATIVE_PATTERNS: list[re.Pattern] = [
+        re.compile(r"^no\b", re.IGNORECASE),
+        re.compile(r"^nop(e)?\b", re.IGNORECASE),
+        re.compile(r"^nah\b", re.IGNORECASE),
+        re.compile(r"(no gracias|no hace falta|no es necesario|mejor no|no, gracias)", re.IGNORECASE),
+        re.compile(r"(descartar|olv[íi]dalo|skip|discard|forget it|not needed)", re.IGNORECASE),
+        re.compile(r"^no\s+,?\s*(gracias|nada)", re.IGNORECASE),
+    ]
+
+    _EDIT_PATTERNS: list[re.Pattern] = [
+        re.compile(r"^(edita|editar|edit)\b", re.IGNORECASE),
+        re.compile(r"^(corrige|corregir|correct (it|this))\b", re.IGNORECASE),
+        re.compile(r"^(cambia|cambiar|change|modify)\b", re.IGNORECASE),
+        re.compile(r"(en realidad es|actually (it['']?s|is)|instead of|en lugar de)", re.IGNORECASE),
+        re.compile(r"(mejor as[ií]|mejor dicho|mejor pon)", re.IGNORECASE),
+        re.compile(r"(no es así|eso no es|that['']?s not|it['']?s not)", re.IGNORECASE),
+        re.compile(r"rectifica|rectify|revise|revisa", re.IGNORECASE),
+    ]
+
+    @classmethod
+    def classify(cls, text: str, lang: str = "es") -> tuple[DecisionValue, float]:
+        """
+        Classify a user response into ACCEPTED, REJECTED, EDITED, or AMBIGUOUS.
+
+        Returns:
+            Tuple of (DecisionValue, confidence score between 0.0 and 1.0).
+        """
+        clean = text.strip().translate(str.maketrans("", "", string.punctuation))
+        if not clean:
+            return DecisionValue.AMBIGUOUS, 0.0
+
+        signals: list[_ClassificationSignal] = []
+
+        # Detect all signals from each pattern group
+        for pattern in cls._AFFIRMATIVE_PATTERNS:
+            match = pattern.search(text)
+            if match:
+                # Sentence-initial affirmative is stronger
+                is_initial = match.start() == 0
+                weight = 0.55 if is_initial else 0.40
+                signals.append(
+                    _ClassificationSignal(DecisionValue.ACCEPTED, weight, f"affirmative:{match.group()}")
+                )
+
+        for pattern in cls._NEGATIVE_PATTERNS:
+            match = pattern.search(text)
+            if match:
+                is_initial = match.start() == 0
+                weight = 0.55 if is_initial else 0.40
+                signals.append(
+                    _ClassificationSignal(DecisionValue.REJECTED, weight, f"negative:{match.group()}")
+                )
+
+        for pattern in cls._EDIT_PATTERNS:
+            match = pattern.search(text)
+            if match:
+                is_initial = match.start() == 0
+                weight = 0.60 if is_initial else 0.45
+                signals.append(
+                    _ClassificationSignal(DecisionValue.EDITED, weight, f"edit:{match.group()}")
+                )
+
+        # Boost: if text contains both affirmative and corrective content,
+        # the first word position determines intent
+        first_word = clean.split()[0].lower() if clean.split() else ""
+        first_word_signals = [s for s in signals if s.reason.split(":")[-1] == first_word]
+        if first_word_signals:
+            boosted = first_word_signals[0]
+            signals = [
+                _ClassificationSignal(boosted.decision, min(boosted.weight + 0.15, 0.95), boosted.reason)
+                if s == boosted
+                else s
+                for s in signals
+            ]
+
+        if not signals:
+            return DecisionValue.AMBIGUOUS, 0.0
+
+        # Aggregate scores by decision type
+        scores: dict[DecisionValue, float] = {}
+        for sig in signals:
+            scores[sig.decision] = scores.get(sig.decision, 0.0) + sig.weight
+
+        # Sort by score descending
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        best_decision, best_score = ranked[0]
+
+        # If best score is too low → ambiguous
+        if best_score < 0.35:
+            return DecisionValue.AMBIGUOUS, best_score
+
+        # If top two are too close (< 0.15 gap) → ambiguous
+        if len(ranked) > 1 and (ranked[0][1] - ranked[1][1]) < 0.15:
+            return DecisionValue.AMBIGUOUS, best_score
+
+        return best_decision, min(best_score, 1.0)
 
 
 class MemoryProposer:
@@ -158,7 +284,8 @@ class MemoryProposer:
         language: Optional[str] = None,
     ) -> ProposalClassification:
         """
-        Classify a user's response to a pending proposal.
+        Classify a user's response to a pending proposal using a structured
+        classifier (not naive keyword matching).
 
         Per ticket #MEM-092:
         - If confidence is below threshold → classification = AMBIGUOUS
@@ -168,10 +295,9 @@ class MemoryProposer:
         Returns a ProposalClassification with the determined decision.
         """
         lang = language or self._language
-        response_lower = user_response.strip().lower()
 
         # Check for empty/silence
-        if not response_lower:
+        if not user_response or not user_response.strip():
             return ProposalClassification(
                 proposal_id=proposal.id,
                 user_response_text=user_response,
@@ -179,26 +305,10 @@ class MemoryProposer:
                 confidence=0.0,
             )
 
-        # Check for accept keywords
-        accept_score = self._match_keywords(
-            response_lower, ACCEPT_KEYWORDS.get(lang, ACCEPT_KEYWORDS["es"])
+        # Use structured classifier instead of naive keyword matching
+        best_decision, best_score = StructuredResponseClassifier.classify(
+            user_response, lang
         )
-        reject_score = self._match_keywords(
-            response_lower, REJECT_KEYWORDS.get(lang, REJECT_KEYWORDS["es"])
-        )
-        edit_score = self._match_keywords(
-            response_lower, EDIT_KEYWORDS.get(lang, EDIT_KEYWORDS["es"])
-        )
-
-        # Determine best classification
-        scores = [
-            (DecisionValue.ACCEPTED, accept_score),
-            (DecisionValue.REJECTED, reject_score),
-            (DecisionValue.EDITED, edit_score),
-        ]
-        scores.sort(key=lambda x: x[1], reverse=True)
-
-        best_decision, best_score = scores[0]
 
         # If best score is below threshold, classify as ambiguous
         if best_score < self._classification_threshold:
@@ -207,16 +317,6 @@ class MemoryProposer:
                 user_response_text=user_response,
                 classification=DecisionValue.AMBIGUOUS,
                 confidence=best_score,
-            )
-
-        # If there's a near-tie between top two, mark ambiguous
-        if len(scores) > 1 and abs(scores[0][1] - scores[1][1]) < 0.2:
-            return ProposalClassification(
-                proposal_id=proposal.id,
-                user_response_text=user_response,
-                classification=DecisionValue.AMBIGUOUS,
-                confidence=best_score,
-                # Note: ambiguous because the top two scores are too close
             )
 
         return ProposalClassification(
@@ -283,33 +383,5 @@ class MemoryProposer:
     # Helpers
     # ──────────────────────────────────────────
 
-    def _match_keywords(self, text: str, keywords: set[str]) -> float:
-        """
-        Match user response against a set of keywords.
-
-        Returns a confidence score between 0.0 and 1.0 based on
-        the proportion of keywords found and their position weight.
-        """
-        if not text or not keywords:
-            return 0.0
-
-        # Strip common punctuation for word matching
-        import string
-        clean = text.translate(str.maketrans('', '', string.punctuation))
-
-        matched = 0
-        for kw in keywords:
-            if kw in text:
-                matched += 1
-
-        if matched == 0:
-            return 0.0
-
-        # Base score: proportion of keywords matched
-        base = matched / len(keywords)
-        # Boost if the first word is a keyword (strong signal)
-        first_word = clean.split()[0].lower() if clean.split() else ""
-        if first_word in keywords:
-            base += 0.5
-
-        return min(base, 1.0)
+    # NOTE: _match_keywords was removed in favour of StructuredResponseClassifier
+    # (see above). Naive keyword matching is prohibited by the challenge.

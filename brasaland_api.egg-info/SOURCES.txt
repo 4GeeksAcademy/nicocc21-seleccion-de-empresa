@@ -50,7 +50,14 @@ services/brasaland_api/seed.py
 services/brasaland_api/suppliers_seed_data.py
 services/brasaland_api/telemetry.py
 services/brasaland_api/telemetry_models.py
+services/brasaland_api/agent/__init__.py
+services/brasaland_api/agent/graph.py
+services/brasaland_api/agent/nodes.py
+services/brasaland_api/agent/record_traces.py
+services/brasaland_api/agent/state.py
+services/brasaland_api/agent/tracing.py
 services/brasaland_api/routes/__init__.py
+services/brasaland_api/routes/agent.py
 services/brasaland_api/routes/auth.py
 services/brasaland_api/routes/incidents.py
 services/brasaland_api/routes/inventory.py

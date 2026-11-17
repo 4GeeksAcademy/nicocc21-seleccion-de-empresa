@@ -11,3 +11,9 @@ build/
 .env
 .env.*
 !.env.example
+
+# Memory store — no subir datos de memoria a git
+data/memory/
+services/brasaland_api/agent/data/memory/
+services/brasaland_api/agent/data/traces.json
+services/brasaland_api/agent/data/checkpoints.sqlite

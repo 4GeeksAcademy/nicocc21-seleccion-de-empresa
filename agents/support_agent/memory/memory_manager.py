@@ -63,8 +63,8 @@ class MemoryManager:
         self._proposer = proposer or MemoryProposer()
         self._consolidator = consolidator or MemoryConsolidator(self._store)
 
-        # Track pending proposals per conversation
-        self._pending_proposals: dict[str, MemoryProposal] = {}
+        # Track pending proposals — limited to ONE at a time
+        self._pending_proposal: MemoryProposal | None = None
 
     # ──────────────────────────────────────────
     # Main flow: evaluate and propose
@@ -93,7 +93,15 @@ class MemoryManager:
             Tuple of (MemoryProposal or None, confirmation_prompt or None).
             If None, None — nothing memorable was detected.
         """
-        # Step 1: Evaluate
+        # Step 1: Check if there's already a pending proposal (limit to ONE)
+        if self._pending_proposal is not None:
+            logger.debug(
+                "A pending proposal already exists (%s) — skipping new proposal",
+                self._pending_proposal.id,
+            )
+            return None, None
+
+        # Step 2: Evaluate
         evaluation = self._evaluator.evaluate(interaction_text, location_id)
 
         if not evaluation.should_propose:
@@ -104,7 +112,7 @@ class MemoryManager:
             )
             return None, None
 
-        # Step 2: Create proposal
+        # Step 3: Create proposal
         proposal = self._proposer.create_proposal(
             location_id=location_id,
             category=evaluation.category or MemoryCategory.OTHER,
@@ -115,11 +123,11 @@ class MemoryManager:
             source_interaction=interaction_text[:500],
         )
 
-        # Step 3: Save proposal to store
+        # Step 4 (prev): Save proposal to store
         self._store.save_proposal(proposal)
 
-        # Step 4: Track in-memory for quick lookup
-        self._pending_proposals[proposal.id] = proposal
+        # Step 4: Track in-memory for quick lookup (only ONE at a time)
+        self._pending_proposal = proposal
 
         # Step 5: Format confirmation prompt
         prompt = self._proposer.format_confirmation_prompt(proposal, language)
@@ -203,8 +211,8 @@ class MemoryManager:
         decision = self._store.save_decision(decision)
         self._store.save_proposal(proposal)
 
-        # Clean up pending tracking
-        self._pending_proposals.pop(proposal_id, None)
+        # Clean up pending tracking (only ONE at a time)
+        self._pending_proposal = None
 
         # If accepted or edited → create MemoryEntry
         entry: Optional[MemoryEntry] = None

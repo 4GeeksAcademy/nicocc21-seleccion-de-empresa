@@ -12,5 +12,8 @@ build/
 .env.*
 !.env.example
 
-# Traces locales del agente de soporte (generados en runtime)
-services/brasaland_api/agent/data/
+# Memory store — no subir datos de memoria a git
+data/memory/
+services/brasaland_api/agent/data/memory/
+services/brasaland_api/agent/data/traces.json
+services/brasaland_api/agent/data/checkpoints.sqlite

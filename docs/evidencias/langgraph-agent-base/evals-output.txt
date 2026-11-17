@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.2, pytest-8.4.2, pluggy-1.6.0 -- /workspaces/nicocc21-seleccion-de-empresa/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspaces/nicocc21-seleccion-de-empresa
+configfile: pyproject.toml
+plugins: cov-6.3.0, anyio-4.14.2, langsmith-0.14.17
+collecting ... collected 5 items
+
+tests/pipelines/test_agent_evals.py::test_eval_retrieve_runs_before_generate SKIPPED [ 20%]
+tests/pipelines/test_agent_evals.py::test_eval_gold_tier_answer_is_grounded_in_loyalty_policy SKIPPED [ 40%]
+tests/pipelines/test_agent_evals.py::test_eval_ceviche_allergens_are_grounded_in_menu_guide SKIPPED [ 60%]
+tests/pipelines/test_agent_evals.py::test_eval_out_of_scope_question_routes_to_no_context SKIPPED [ 80%]
+tests/pipelines/test_agent_evals.py::test_eval_empty_question_is_rejected_before_retrieve PASSED [100%]
+
+========================= 1 passed, 4 skipped in 1.41s =========================

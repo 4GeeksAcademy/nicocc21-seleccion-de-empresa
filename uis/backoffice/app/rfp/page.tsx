@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getToken } from "../../../../src/auth/auth-client";
 
 /*
  * Página de recepción de RFPs (Hito 9).
@@ -9,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - Subida de PDF (drag & drop o file input)
  * - Polling del estado del ticket en background
  * - Visualización del resultado cuando el análisis se completa
+ * - Notificaciones SSE en tiempo real (Hito 10)
  */
 
 type TicketStatus = "analizando" | "descartado" | "analisis_completo";
@@ -38,6 +40,25 @@ interface RFPResult {
   error_message: string | null;
 }
 
+interface SSETicketEvent {
+  ticket_id: string;
+  rfp_id: string;
+  client_name?: string;
+  location?: string;
+  service_type?: string;
+  status: string;
+  created_at: string;
+}
+
+interface SSENotification {
+  id: string;
+  ticket_id: string;
+  client_name: string;
+  location: string;
+  service_type: string;
+  timestamp: string;
+}
+
 export default function RFPPage() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -45,15 +66,188 @@ export default function RFPPage() {
   const [ticket, setTicket] = useState<TicketInfo | null>(null);
   const [result, setResult] = useState<RFPResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sseConnected, setSseConnected] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [notifications, setNotifications] = useState<SSENotification[]>([]);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sseRef = useRef<AbortController | null>(null);
+  const lastEventIdRef = useRef<number | null>(null);
+  const receivedTicketIds = useRef<Set<string>>(new Set());
 
-  // ── Limpiar polling al desmontar ──────────────────────────────────
+  // ── SSE: conectar al canal de eventos RFP ────────────────────────
+  // Usamos fetch + ReadableStream en vez de EventSource porque
+  // necesitamos enviar Authorization header (JWT) y controlar
+  // la reconexión con backoff progresivo.
+  const connectSSE = useCallback(() => {
+    // Cancelar conexión previa si existe
+    if (sseRef.current) {
+      sseRef.current.abort();
+      sseRef.current = null;
+    }
+
+    const abortController = new AbortController();
+    sseRef.current = abortController;
+
+    const connect = async (retryCount = 0) => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.error("SSE: No hay sesión activa — el usuario debe iniciar sesión");
+          setSseConnected(false);
+          return;
+        }
+
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${token}`,
+        };
+        if (lastEventIdRef.current !== null) {
+          headers["last-event-id"] = String(lastEventIdRef.current);
+        }
+
+        const response = await fetch("/api/sse/rfp/events", {
+          method: "GET",
+          headers,
+          signal: abortController.signal,
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            console.error("SSE: Autenticación fallida — token inválido o expirado");
+            setSseConnected(false);
+            setReconnecting(false);
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        setSseConnected(true);
+        setReconnecting(false);
+        retryCount = 0; // Resetear backoff al conectar
+
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Parsear SSE framing: eventos separados por \n\n
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || ""; // Última parte puede estar incompleta
+
+          for (const block of parts) {
+            if (!block.trim()) continue;
+
+            let eventName = "";
+            let eventData = "";
+            let eventId: string | null = null;
+
+            for (const line of block.split("\n")) {
+              if (line.startsWith("id: ")) {
+                eventId = line.substring(4);
+              } else if (line.startsWith("event: ")) {
+                eventName = line.substring(7);
+              } else if (line.startsWith("data: ")) {
+                eventData += line.substring(6);
+              }
+              // Heartbeats son comentarios ": heartbeat" — los ignoramos
+            }
+
+            // Actualizar Last-Event-ID para reconexión
+            if (eventId) {
+              const parsedId = parseInt(eventId, 10);
+              if (!isNaN(parsedId)) {
+                lastEventIdRef.current = parsedId;
+              }
+            }
+
+            // Procesar solo eventos que nos interesan
+            if (eventName === "rfp_ticket_created" && eventData) {
+              try {
+                const data: SSETicketEvent = JSON.parse(eventData);
+
+                // Deduplicación: si ya recibimos este ticket_id, ignorar
+                if (receivedTicketIds.current.has(data.ticket_id)) {
+                  console.log("SSE: ticket duplicado ignorado", data.ticket_id);
+                  continue;
+                }
+                receivedTicketIds.current.add(data.ticket_id);
+
+                console.log("SSE evento recibido: rfp_ticket_created", data);
+
+                // Añadir a notificaciones toast
+                const notification: SSENotification = {
+                  id: data.ticket_id,
+                  ticket_id: data.ticket_id,
+                  client_name: data.client_name || "Cliente pendiente",
+                  location: data.location || "Ubicación pendiente",
+                  service_type: data.service_type || "",
+                  timestamp: new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
+                };
+                setNotifications((prev) => {
+                  const updated = [notification, ...prev];
+                  return updated.slice(0, 20); // Máximo 20 notificaciones en memoria
+                });
+
+                // Si no hay un ticket activo, mostrar éste automáticamente
+                if (!pollingRef.current) {
+                  const ticketInfo: TicketInfo = {
+                    ticket_id: parseInt(data.ticket_id.replace("tkt_", "")),
+                    status: "analizando",
+                    rfp_external_id: null,
+                    created_at: data.created_at,
+                    updated_at: data.created_at,
+                    error_message: null,
+                  };
+                  setTicket(ticketInfo);
+                  setActiveTicketId(ticketInfo.ticket_id);
+                  startPolling(ticketInfo.ticket_id);
+                }
+              } catch (err) {
+                console.error("Error al procesar evento SSE:", err);
+              }
+            }
+          }
+        }
+
+        // Stream cerró limpiamente → reconectar
+        setSseConnected(false);
+        throw new Error("Stream finalizado");
+
+      } catch (err) {
+        if (abortController.signal.aborted) return; // Desmontaje intencional
+
+        setSseConnected(false);
+        setReconnecting(true);
+
+        // Backoff progresivo: 1s, 2s, 4s, 8s, ... máx 30s + jitter
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+        const jitter = Math.random() * 1000;
+        console.log(
+          `SSE: Reintentando conexión en ${((delay + jitter) / 1000).toFixed(1)}s ` +
+          `(intento ${retryCount + 1})`
+        );
+
+        setTimeout(() => connect(retryCount + 1), delay + jitter);
+      }
+    };
+
+    connect(0);
+  }, [startPolling]);
+
+  // ── Limpiar polling y SSE al desmontar ────────────────────────────
   useEffect(() => {
+    connectSSE();
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
+      if (sseRef.current) sseRef.current.abort();
     };
-  }, []);
+  }, [connectSSE]);
 
   // ── Polling del estado ────────────────────────────────────────────
   const startPolling = useCallback((ticketId: number) => {
@@ -172,13 +366,40 @@ export default function RFPPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Recepción de RFPs</h1>
-        <p className="mt-1 text-sm text-stone-400">
-          Sube una solicitud de propuesta (RFP) en PDF para que el sistema la analice
-          y la distribuya a los departamentos correspondientes.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Recepción de RFPs</h1>
+          <p className="mt-1 text-sm text-stone-400">
+            Sube una solicitud de propuesta (RFP) en PDF para que el sistema la analice
+            y la distribuya a los departamentos correspondientes.
+          </p>
+        </div>
+        {/* Indicador de conexión SSE */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`h-2.5 w-2.5 rounded-full ${sseConnected ? "bg-emerald-400" : reconnecting ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
+          <span className={sseConnected ? "text-emerald-400" : reconnecting ? "text-amber-400" : "text-red-400"}>
+            {sseConnected ? "Tiempo real conectado" : reconnecting ? "Reconectando…" : "Desconectado"}
+          </span>
+        </div>
       </div>
+
+      {/* Notificaciones toast SSE */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 w-80 max-h-96 space-y-2 overflow-y-auto">
+          {notifications.slice(0, 5).map((n) => (
+            <div key={`${n.id}-${n.timestamp}`} className="animate-slide-in rounded-lg border border-sky-500/30 bg-stone-800/90 p-3 shadow-2xl backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-sky-300">Nueva RFP</span>
+                <span className="text-xs text-stone-500">{n.timestamp}</span>
+              </div>
+              <p className="mt-1 text-sm font-medium text-white">{n.ticket_id}</p>
+              <p className="text-xs text-stone-400">
+                {n.client_name}{n.location ? ` · ${n.location}` : ""}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Drop zone */}
       <div

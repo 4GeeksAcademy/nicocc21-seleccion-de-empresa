@@ -17,5 +17,11 @@ Requires-Dist: psycopg2-binary<3.0.0,>=2.9.9
 Requires-Dist: jsonschema[format-nongpl]<5.0.0,>=4.23.0
 Requires-Dist: pandas<3.0.0,>=2.2.0
 Requires-Dist: prefect<4.0.0,>=3.0.0
-Requires-Dist: qdrant-client>=1.20.0
-Requires-Dist: google-genai>=3.0.0
+Requires-Dist: scikit-learn>=1.9.1
+Requires-Dist: xgboost>=3.2.0
+Requires-Dist: matplotlib>=3.11.2
+Requires-Dist: numpy>=2.4.6
+Requires-Dist: fastmcp
+Requires-Dist: mcpauth
+Requires-Dist: langchain-mcp-adapters
+Requires-Dist: mcp

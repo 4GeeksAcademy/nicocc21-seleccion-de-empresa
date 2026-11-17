@@ -105,3 +105,69 @@ class RFPResponseState:
     # --- Integración opcional con knowledge base ---
     knowledge_base_available: bool = False
     knowledge_context: Optional[str] = None
+# ═══════════════════════════════════════════════════════════════════════════
+#  Modelos de la Parte 3 — Aprobación humana y arbitraje
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@dataclass
+class ApprovalEntry:
+    """Entrada de aprobación para un departamento o CEO.
+
+    Estados: pendiente | aprobado | rechazado | request_changes
+    """
+    department_id: str
+    approver: str
+    status: str = "pendiente"
+    approved_at: Optional[str] = None
+    comments: str = ""
+
+
+@dataclass
+class ConflictEntry:
+    """Conflicto detectado entre departamentos (BRIEFING §7).
+
+    trigger_id: cost-vs-feasibility | setup-sla-breach | ceo-threshold
+    Estados: pendiente | resuelto
+    """
+    trigger_id: str
+    description: str = ""
+    department_ids: list[str] = field(default_factory=list)
+    arbiter: str = ""
+    status: str = "pendiente"
+    resolution: str = ""
+
+
+@dataclass
+class ApprovalState:
+    """Estado completo del flujo de aprobación humana (Parte 3).
+
+    Flujo de estados globales:
+        pending_approvals -> waiting_ceo -> arbitrating -> completed
+        pending_approvals -> rejected
+        pending_approvals -> pending_approvals (si request_changes)
+
+    Límite de iteraciones: MAX_APPROVAL_ITERATIONS (por defecto 5).
+    """
+    ticket_id: int
+    approvals: dict[str, ApprovalEntry] = field(default_factory=dict)
+    ceo_approval_pending: bool = False
+    ceo_approval: Optional[ApprovalEntry] = None
+    conflicts: list[ConflictEntry] = field(default_factory=list)
+    status: str = "pending_approvals"
+    # pending_approvals | waiting_ceo | arbitrating | completed | rejected
+    iteration_count: int = 0
+    max_iterations: int = 5
+
+
+@dataclass
+class FinalDocument:
+    """Documento final sintetizado tras aprobaciones completas.
+
+    delivery_status: pendiente | enviado
+    """
+    ticket_id: int
+    sections: dict[str, str] = field(default_factory=dict)
+    total_estimated_value: Optional[float] = None
+    generated_at: Optional[str] = None
+    delivery_status: str = "pendiente"

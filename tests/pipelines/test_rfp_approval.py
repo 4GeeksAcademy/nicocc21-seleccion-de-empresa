@@ -889,3 +889,99 @@ class TestIntegrationEndToEnd:
 
         result = record_approval(ticket_id=1, department_id="ceo", action="approve", comments="Ok CEO")
         assert result["status"] == "completed"
+
+class TestApprovalIterationLimit:
+    """Verifica el límite de iteraciones (Corrección 3 del feedback)."""
+
+    def test_max_iterations_enforced(
+        self, checkpointed_state: ApprovalState
+    ):
+        """Si se excede el límite, el estado pasa a 'rejected'."""
+        from data.pipelines.rfp_response.approval import (
+            record_approval,
+            MAX_APPROVAL_ITERATIONS,
+        )
+
+        depts = ["marketing", "operaciones", "procurement", "training"]
+        for i in range(MAX_APPROVAL_ITERATIONS + 2):
+            dept = depts[i % len(depts)]
+            result = record_approval(
+                ticket_id=1,
+                department_id=dept,
+                action="request_changes",
+                comments=f"Iteración {i + 1}",
+            )
+            if i >= MAX_APPROVAL_ITERATIONS:
+                assert result["status"] == "rejected"
+                break
+        assert result["status"] == "rejected"
+
+    def test_iteration_count_increments_on_request_changes(
+        self, checkpointed_state: ApprovalState
+    ):
+        """Cada request_changes incrementa el contador."""
+        from data.pipelines.rfp_response.approval import (
+            load_checkpoint,
+            record_approval,
+        )
+
+        record_approval(
+            ticket_id=1,
+            department_id="marketing",
+            action="request_changes",
+            comments="Primera revisión",
+        )
+        state = load_checkpoint(1)
+        assert state is not None
+        assert state.iteration_count == 1
+
+        record_approval(
+            ticket_id=1,
+            department_id="operaciones",
+            action="request_changes",
+            comments="Segunda revisión",
+        )
+        state = load_checkpoint(1)
+        assert state is not None
+        assert state.iteration_count == 2
+
+
+class TestApprovalStatusTransition:
+    """Verifica las transiciones de estado global (Corrección 2 del feedback)."""
+
+    def test_status_completed_after_all_approvals(
+        self, sample_state_below_ceo: RFPResponseState
+    ):
+        """Sin umbral CEO, al aprobar todos pasa a 'completed'."""
+        from data.pipelines.rfp_response.approval import (
+            initialize_approval_state,
+            record_approval,
+            save_checkpoint,
+        )
+
+        approval_state = initialize_approval_state(sample_state_below_ceo)
+        save_checkpoint(approval_state)
+
+        for dept_id in ALL_DEPARTMENTS:
+            record_approval(
+                ticket_id=sample_state_below_ceo.ticket_id,
+                department_id=dept_id,
+                action="approve",
+                comments="Ok",
+            )
+        result = record_approval(
+            ticket_id=sample_state_below_ceo.ticket_id,
+            department_id="marketing",
+            action="approve",
+            comments="Ok",
+        )
+        assert result["status"] == "completed"
+
+
+class TestMaxIterationsConstant:
+    """Verifica que MAX_APPROVAL_ITERATIONS está definido."""
+
+    def test_max_iterations_positive(self):
+        from data.pipelines.rfp_response.approval import MAX_APPROVAL_ITERATIONS
+        assert MAX_APPROVAL_ITERATIONS > 0
+        assert isinstance(MAX_APPROVAL_ITERATIONS, int)

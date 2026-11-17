@@ -39,6 +39,8 @@ CHECKPOINT_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data" /
 CHECKPOINT_DB = CHECKPOINT_DIR / "rfp_approval.db"
 
 CEO_THRESHOLD_USD = 50000.0
+MAX_APPROVAL_ITERATIONS = 5  # Límite de ciclos de aprobación/request_changes
+
 
 # Registry de aprobadores (BRIEFING §2.1)
 APPROVERS = {
@@ -188,6 +190,8 @@ def save_checkpoint(approval_state: ApprovalState) -> None:
         "ticket_id": approval_state.ticket_id,
         "status": approval_state.status,
         "ceo_approval_pending": approval_state.ceo_approval_pending,
+        "iteration_count": approval_state.iteration_count,
+        "max_iterations": approval_state.max_iterations,
         "approvals": {
             dept_id: {
                 "department_id": entry.department_id,
@@ -288,6 +292,8 @@ def load_checkpoint(ticket_id: int) -> Optional[ApprovalState]:
             ceo_approval=ceo_approval,
             conflicts=conflicts,
             status=state_dict.get("status", "pending_approvals"),
+            iteration_count=state_dict.get("iteration_count", 0),
+            max_iterations=state_dict.get("max_iterations", 5),
         )
     finally:
         conn.close()
@@ -325,7 +331,7 @@ def record_approval(
     if department_id == "ceo":
         if approval_state.ceo_approval is None:
             raise ValueError(
-                f"Ticket {ticket_id} no requiere aprobaci\u00f3n de CEO."
+                f"Ticket {ticket_id} no requiere aprobación de CEO."
             )
         entry = approval_state.ceo_approval
     elif department_id in approval_state.approvals:
@@ -346,9 +352,10 @@ def record_approval(
     elif action == "request_changes":
         entry.status = "request_changes"
         entry.comments = comments
+        approval_state.iteration_count += 1  # Contar iteración
     else:
         raise ValueError(
-            f"Acci\u00f3n inv\u00e1lida: '{action}'. "
+            f"Acción inválida: '{action}'. "
             "Usar approve, reject o request_changes."
         )
 
@@ -366,11 +373,21 @@ def record_approval(
         if action == "reject":
             approval_state.status = "rejected"
 
+    # Verificar límite de iteraciones (Corrección 3)
+    if approval_state.iteration_count >= MAX_APPROVAL_ITERATIONS:
+        approval_state.status = "rejected"
+        save_checkpoint(approval_state)
+        _sync_ticket_status(approval_state)
+        return approval_state_to_dict(approval_state)
+
     # Verificar si todas las aprobaciones están completas
     _update_global_status(approval_state)
 
     # Persistir checkpoint
     save_checkpoint(approval_state)
+
+    # Actualizar ticket en DB si el estado final es "completed" o "rejected" (Corrección 2)
+    _sync_ticket_status(approval_state)
 
     return approval_state_to_dict(approval_state)
 
@@ -912,3 +929,35 @@ def _metadata_to_dict(metadata_obj: Any) -> dict[str, Any]:
         "budget_max_usd": getattr(metadata_obj, "budget_max_usd", None),
         "departments_needed": getattr(metadata_obj, "departments_needed", ""),
     }
+
+def _sync_ticket_status(approval_state: ApprovalState) -> None:
+    """Actualiza el estado del ticket en la DB según el ApprovalState.
+
+    Si el estado es "completed", cambia a "terminado".
+    Si es "rejected", cambia a "rechazado".
+    Esto asegura que el ticket progrese más allá de "esperando_aprobacion".
+    """
+    MAPPING = {
+        "completed": "terminado",
+        "rejected": "rechazado",
+    }
+    new_status = MAPPING.get(approval_state.status)
+    if new_status is None:
+        return  # pending_approvals, waiting_ceo, arbitrating — no cambiar
+
+    try:
+        from sqlmodel import Session
+        from services.brasaland_api.database import engine
+        from services.brasaland_api.rfp_models import Ticket as TicketORM
+
+        with Session(engine) as session:
+            ticket = session.get(TicketORM, approval_state.ticket_id)
+            if ticket and ticket.status not in ("terminado", "rechazado"):
+                ticket.status = new_status
+                session.add(ticket)
+                session.commit()
+    except Exception as exc:
+        _logger.warning(
+            "No se pudo sync ticket %d a '%s': %s",
+            approval_state.ticket_id, new_status, exc,
+        )

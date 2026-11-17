@@ -28,6 +28,7 @@ from services.brasaland_api.routes.suppliers import router as suppliers_router
 from services.brasaland_api.routes.telemetry import router as telemetry_router
 from services.brasaland_api.routes.users import router as users_router
 from services.brasaland_api.routes.knowledge import router as knowledge_router
+from services.brasaland_api.routes.agent import router as agent_router
 from services.reporting.routes import router as reporting_router
 from data.pipelines.storage import ensure_reporting_tables
 from services.brasaland_api.seed import run_seed
@@ -139,3 +140,4 @@ app.include_router(inventory_router)
 app.include_router(telemetry_router)
 app.include_router(reporting_router)
 app.include_router(knowledge_router)
+app.include_router(agent_router)

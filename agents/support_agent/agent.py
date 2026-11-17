@@ -9,6 +9,12 @@ Extiende el agente con memoria episódica (Hito 8 — Parte 1):
     - Procesa la decisión del usuario y persiste lo aprobado
     - Inyecta contexto de memoria en las conversaciones
 
+NOTA: Este agente ahora DELEGA la lógica RAG y de memoria al grafo LangGraph
+      definido en ``services/brasaland_api.agent``, que es la integración
+      principal. Esta clase se mantiene como envoltura para la CLI y para
+      interoperar con el MCP Client, pero las nuevas funcionalidades deben
+      implementarse en el grafo LangGraph.
+
 Modos de uso:
     1. Como biblioteca — importa ``SupportAgent`` desde código Python.
     2. Como CLI interactiva — ejecuta ``python -m agents.support_agent.agent``.

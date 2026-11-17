@@ -30,9 +30,11 @@ from services.brasaland_api.routes.users import router as users_router
 from services.brasaland_api.routes.knowledge import router as knowledge_router
 from services.brasaland_api.routes.rfp import router as rfp_router
 from services.brasaland_api.routes.rfp_response import router as rfp_response_router
+from services.brasaland_api.routes.sse import router as sse_router
 from services.reporting.routes import router as reporting_router
 from data.pipelines.storage import ensure_reporting_tables
 from services.brasaland_api.seed import run_seed
+from services.brasaland_api.notifications import init_notification_manager
 
 import logging
 
@@ -47,6 +49,8 @@ async def lifespan(_: FastAPI):
         run_incidents_seed(verbose=False)
         run_inventory_seed(verbose=False)
         ensure_reporting_tables()
+        # Inicializar gestor de notificaciones SSE
+        init_notification_manager()
         # Asegurar tablas de RFP en PostgreSQL
         from services.brasaland_api.rfp_models import ensure_rfp_tables
         ensure_rfp_tables()
@@ -146,3 +150,4 @@ app.include_router(reporting_router)
 app.include_router(knowledge_router)
 app.include_router(rfp_router)
 app.include_router(rfp_response_router)
+app.include_router(sse_router)

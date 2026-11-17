@@ -71,6 +71,7 @@ def start_run(run_id: str, question: str) -> None:
                 "finished_at": None,
                 "answer": None,
                 "error": None,
+                "usage_summary": None,
                 "steps": [],
             }
         )
@@ -82,12 +83,13 @@ def finish_run(
     status: RunStatus,
     answer: str | None = None,
     error: str | None = None,
+    usage_summary: list[str] | None = None,
 ) -> None:
+    update: dict[str, Any] = {"status": status, "finished_at": _utc_now(), "answer": answer, "error": error}
+    if usage_summary:
+        update["usage_summary"] = usage_summary
     with _lock, _get_db() as db:
-        db.update(
-            {"status": status, "finished_at": _utc_now(), "answer": answer, "error": error},
-            Query().run_id == run_id,
-        )
+        db.update(update, Query().run_id == run_id)
 
 
 def _append_step(run_id: str, step: dict[str, Any]) -> None:

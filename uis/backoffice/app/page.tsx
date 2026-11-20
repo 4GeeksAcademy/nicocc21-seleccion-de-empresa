@@ -102,6 +102,12 @@ export default function BackofficePage() {
             >
               Ver reporte de telemetría
             </a>
+            <a
+              href="/chat"
+              className="rounded-full border border-amber-300/60 bg-amber-300/10 px-4 py-2 font-bold text-amber-200 transition hover:bg-amber-300/20"
+            >
+              💬 Manager Support Agent
+            </a>
           </nav>
         </header>
 

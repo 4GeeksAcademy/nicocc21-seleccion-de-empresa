@@ -16,7 +16,5 @@ scikit-learn>=1.9.1
 xgboost>=3.2.0
 matplotlib>=3.11.2
 numpy>=2.4.6
-fastmcp
-mcpauth
-langchain-mcp-adapters
-mcp
+markitdown>=0.1.9
+py-readability-metrics>=1.4.5

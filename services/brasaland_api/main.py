@@ -67,7 +67,15 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # SEC-006: CORS restringido a orígenes conocidos.
+    # En producción, reemplazar con las URLs reales de los frontends.
+    # "*" solo es aceptable en desarrollo local sin datos reales.
+    allow_origins=[
+        "http://localhost:3000",   # Website (desarrollo)
+        "http://localhost:3001",   # Backoffice (desarrollo)
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

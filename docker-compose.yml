@@ -10,8 +10,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-brasaland}
       POSTGRES_USER: ${POSTGRES_USER:-brasaland}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-brasaland_dev}
+    # SEC-001: PostgreSQL solo accesible desde la red interna de Docker,
+    # no desde el host. El backend se conecta vía red interna.
+    expose:
+      - "5432"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -29,8 +33,11 @@ services:
       dockerfile: services/Dockerfile
     container_name: brasaland-backend
     ports:
-      - "8000:8000"   # WSGI (incidencias analyze/export)
-      - "8001:8001"   # FastAPI (auth, suppliers, incidents CRUD, inventory)
+      # SEC-002: Backend solo accesible desde localhost.
+      # En producción, un proxy inverso (Nginx/Caddy) en el host
+      # redirige HTTPS → 8000/8001 internos.
+      - "127.0.0.1:8000:8000"   # WSGI (incidencias analyze/export)
+      - "127.0.0.1:8001:8001"   # FastAPI (auth, suppliers, incidents CRUD, inventory)
     env_file: .env
     volumes:
       - ./services/brasaland_api/:/app/services/brasaland_api/
@@ -47,8 +54,10 @@ services:
       context: ./uis/website
       dockerfile: Dockerfile
     container_name: brasaland-website
+    # SEC-003: Frontend público solo desde localhost.
+    # En producción se sirve estáticamente vía Nginx en puerto 443.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./uis/website/:/app/
       - /app/node_modules/
@@ -61,8 +70,9 @@ services:
       context: ./uis/backoffice
       dockerfile: Dockerfile
     container_name: brasaland-backoffice
+    # SEC-003: Backoffice solo desde localhost.
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     volumes:
       - ./:/app/
       - /app/uis/backoffice/node_modules/
@@ -77,9 +87,15 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     container_name: brasaland-qdrant
+    # SEC-004: Qdrant solo accesible desde la red interna de Docker.
+    # El backend se conecta vía red interna. Dashboard administrativo
+    # no expuesto a internet.
+    expose:
+      - "6333"
+      - "6334"
     ports:
-      - "6333:6333"   # REST/gRPC
-      - "6334:6334"   # Web UI (Dashboard)
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
     networks:

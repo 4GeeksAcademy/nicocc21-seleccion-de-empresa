@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import re
 import time
 from contextlib import asynccontextmanager
@@ -67,11 +68,67 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # CORS restringido a orígenes locales conocidos.
+    # En producción, reemplazar con las URLs reales de los frontends.
+    allow_origins=[
+        "http://localhost:3000",   # Website (desarrollo)
+        "http://localhost:3001",   # Backoffice (desarrollo)
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ─── Rate Limiting (protección contra loops de costo en endpoints IA) ──
+_RATE_LIMIT_STORE: dict[str, list[float]] = {}
+_RATE_LIMIT_MAX_REQUESTS = 10
+_RATE_LIMIT_WINDOW_SECONDS = 60
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Solo aplicar rate limiting al endpoint de conocimiento (IA)
+    if request.url.path == "/knowledge/query" and request.method == "POST":
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        window_start = now - _RATE_LIMIT_WINDOW_SECONDS
+
+        # Limpiar entradas antiguas
+        if client_ip in _RATE_LIMIT_STORE:
+            _RATE_LIMIT_STORE[client_ip] = [
+                ts for ts in _RATE_LIMIT_STORE[client_ip]
+                if ts > window_start
+            ]
+        else:
+            _RATE_LIMIT_STORE[client_ip] = []
+
+        # Verificar límite
+        if len(_RATE_LIMIT_STORE[client_ip]) >= _RATE_LIMIT_MAX_REQUESTS:
+            _logger.warning(
+                "Rate limit excedido para %s en %s (%d requests en %ds)",
+                client_ip, request.url.path,
+                _RATE_LIMIT_MAX_REQUESTS, _RATE_LIMIT_WINDOW_SECONDS,
+            )
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={
+                    "detail": {
+                        "code": "RATE_LIMIT_EXCEEDED",
+                        "message": (
+                            f"Máximo {_RATE_LIMIT_MAX_REQUESTS} requests por "
+                            f"{_RATE_LIMIT_WINDOW_SECONDS} segundos. "
+                            "Intenta de nuevo más tarde."
+                        ),
+                    }
+                },
+            )
+
+        _RATE_LIMIT_STORE[client_ip].append(now)
+
+    response = await call_next(request)
+    return response
 
 
 # ─── Middleware de timing y telemetría ─────────────────────────────────

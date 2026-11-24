@@ -6,7 +6,7 @@ devuelve un objeto ORM directamente desde un endpoint.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
 
@@ -169,3 +169,30 @@ class IngredientExitOut(InventoryMovementBase):
     reason: str
     waste_reason: str | None = None
     type: Literal["outbound"] = "outbound"
+
+
+# ---------------------------------------------------------------------------
+# Chat — WebSocket en tiempo real (Hito 9, Parte 2)
+# ---------------------------------------------------------------------------
+
+
+class ChatMessage(BaseModel):
+    """Mensaje individual en el chat WebSocket del support agent.
+
+    No se persiste en BD directamente; viaja por el Pub/Sub y se mantiene
+    en memoria para rehidratar sesiones (session_snapshot).
+    """
+
+    session_id: str = Field(description="UUID de la sesión de chat")
+    role: str = Field(
+        description="Remitente: 'user' | 'assistant' | 'system'",
+    )
+    content: str = Field(description="Contenido del mensaje")
+    sequence: int = Field(
+        default=0, ge=0,
+        description="Número de orden dentro de la sesión",
+    )
+    timestamp: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(),
+        description="ISO 8601 de cuando se generó el mensaje",
+    )

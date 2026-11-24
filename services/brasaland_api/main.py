@@ -35,6 +35,7 @@ from services.brasaland_api.routes.agent import router as agent_router
 from services.reporting.routes import router as reporting_router
 from data.pipelines.storage import ensure_reporting_tables
 from services.brasaland_api.seed import run_seed
+from services.brasaland_api.notifications import init_notification_manager
 
 import logging
 
@@ -49,6 +50,8 @@ async def lifespan(_: FastAPI):
         run_incidents_seed(verbose=False)
         run_inventory_seed(verbose=False)
         ensure_reporting_tables()
+        # Inicializar gestor de notificaciones SSE
+        init_notification_manager()
         # Asegurar tablas de RFP en PostgreSQL
         from services.brasaland_api.rfp_models import ensure_rfp_tables
         ensure_rfp_tables()

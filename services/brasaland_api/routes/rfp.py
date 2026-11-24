@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from services.brasaland_api.database import get_db
+from services.brasaland_api.notifications import get_notification_manager
 from services.brasaland_api.rfp_models import (
     DepartmentSection,
     RFPMetadata,
@@ -173,6 +174,20 @@ async def upload_rfp(
     ticket.raw_pdf_path = str(raw_path)
     session.add(ticket)
     session.commit()
+
+    # Publicar evento SSE: notificar a los clientes conectados
+    try:
+        manager = get_notification_manager()
+        rfp_id = f"rfp_{ticket.id:04d}"
+        manager.publish("rfp", "rfp_ticket_created", {
+            "ticket_id": f"tkt_{ticket.id:04d}",
+            "rfp_id": rfp_id,
+            "status": ticket.status,
+            "created_at": ticket.created_at.isoformat() if ticket.created_at else "",
+        })
+        _logger.info("Evento SSE rfp_ticket_created publicado para ticket %d", ticket.id)
+    except Exception:
+        _logger.exception("Error al publicar evento SSE para ticket %d — continuando", ticket.id)
 
     # Disparar pipeline en background
     thread = threading.Thread(

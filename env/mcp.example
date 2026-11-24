@@ -7,9 +7,11 @@ MCP_PORT=8081
 MCP_LOG_LEVEL=INFO
 
 # ── Modo desarrollo ──────────────────────────────────────────────────
-# Pon MCP_AUTH_DISABLED=1 para saltar la autenticación OAuth.
-# Útil para probar en MCP Playground. NUNCA en producción.
-MCP_AUTH_DISABLED=1
+# SEC-005: MCP_AUTH_DISABLED desactiva TODA la autenticación OAuth.
+# Solo para pruebas locales en MCP Playground.
+# NUNCA en producción o en entornos accesibles desde red externa.
+# Default seguro: 0 (autenticación requerida)
+MCP_AUTH_DISABLED=0
 
 # -- OAuth / MCP Auth --
 # URL del Authorization Server OAuth 2.1

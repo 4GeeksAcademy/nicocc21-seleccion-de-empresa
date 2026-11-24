@@ -14,15 +14,21 @@ cliente pueda solicitar confirmación al usuario.
 El grafo se compila al importar el módulo para que cualquier error estructural
 aparezca al arrancar la API, no durante una request. Cada transición queda
 guardada por el checkpointer usando `run_id` como `thread_id`.
+
+Streaming en tiempo real (Hito 9, Parte 2):
+  - `stream_agent_tokens`: función async que ejecuta el grafo con `astream()`
+    y publica cada token en el Pub/Sub de chat. Soporta cancelación vía
+    señal asyncio.
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncGenerator
 from uuid import uuid4
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -41,6 +47,7 @@ from services.brasaland_api.agent.nodes import (
     route_after_retrieve,
 )
 from services.brasaland_api.agent.state import SupportAgentState
+from services.brasaland_api.chat_pubsub import ChatEvent, ChatPubSub
 
 CHECKPOINTS_DB_FILE = Path(
     os.getenv("AGENT_CHECKPOINTS_DB", str(tracing.AGENT_DATA_DIR / "checkpoints.sqlite"))
@@ -152,3 +159,170 @@ def list_checkpoints(run_id: str) -> list[dict[str, Any]]:
         }
         for snapshot in reversed(history)
     ]
+
+
+# ─── Streaming de tokens (Hito 9, Parte 2) ─────────────────────────────
+
+
+async def stream_agent_tokens(
+    question: str,
+    session_id: str,
+    *,
+    message_id: str | None = None,
+) -> AgentResult:
+    """Ejecuta el grafo en modo streaming y publica tokens en el Pub/Sub.
+
+    Cada token generado se publica como evento ``token_chunk`` en el canal
+    ``chat.<session_id>``. Al finalizar se publica ``generation_completed``.
+
+    Soporta cancelación: si el evento de cancelación de la sesión está
+    activo, la generación se aborta y se publica ``generation_interrupted``.
+
+    Args:
+        question: Pregunta del usuario.
+        session_id: ID de la sesión de chat (también LangGraph thread_id).
+        message_id: ID opcional del mensaje en curso.
+
+    Returns:
+        AgentResult con la respuesta final (parcial si se interrumpió).
+    """
+    run_id = str(uuid4())
+    pubsub = ChatPubSub()
+    cancel_event = pubsub.get_cancel_event(session_id)
+    mid = message_id or f"msg_{run_id[:8]}"
+
+    tracing.start_run(run_id, question)
+
+    # --- Fase 1: retrieve síncrono (rápido, no genera tokens) ---
+    try:
+        retrieval_state = support_agent_graph.invoke(
+            {"run_id": run_id, "question": question},
+            _config(run_id),
+            output_keys=["documents", "error"],
+        )
+    except Exception as exc:
+        tracing.finish_run(run_id, status="error", error=f"{type(exc).__name__}: {exc}")
+        await pubsub.publish(session_id, ChatEvent("generation_completed", {
+            "session_id": session_id,
+            "message_id": mid,
+            "status": "error",
+        }))
+        return AgentResult(run_id=run_id, answer=None, error=f"{type(exc).__name__}: {exc}")
+
+    if retrieval_state.get("error"):
+        tracing.finish_run(run_id, status="rejected", error=retrieval_state["error"])
+        await pubsub.publish(session_id, ChatEvent("generation_completed", {
+            "session_id": session_id,
+            "message_id": mid,
+            "status": "error",
+        }))
+        return AgentResult(run_id=run_id, answer=None, error=retrieval_state["error"])
+
+    documents = retrieval_state.get("documents", [])
+    no_context = not documents
+
+    # --- Fase 2: generar con streaming ---
+    answer_parts: list[str] = []
+    sequence = 0
+
+    # Si no hay contexto, respuesta directa sin LLM
+    if no_context:
+        from services.brasaland_api.agent.nodes import NO_CONTEXT_ANSWER
+        tokens = NO_CONTEXT_ANSWER.split()
+        for token in tokens:
+            if cancel_event.is_set():
+                tracing.finish_run(run_id, status="interrupted", answer=" ".join(answer_parts))
+                await pubsub.publish(session_id, ChatEvent("generation_interrupted", {
+                    "session_id": session_id,
+                    "message_id": mid,
+                    "status": "interrupted",
+                }))
+                return AgentResult(run_id=run_id, answer=" ".join(answer_parts), error="Interrumpido")
+            answer_parts.append(token)
+            await pubsub.publish(session_id, ChatEvent("token_chunk", {
+                "session_id": session_id,
+                "token": token + " ",
+                "sequence": sequence,
+                "message_id": mid,
+            }))
+            sequence += 1
+            await asyncio.sleep(0)
+
+        full_answer = " ".join(answer_parts)
+        tracing.finish_run(run_id, status="completed", answer=full_answer)
+        await pubsub.publish(session_id, ChatEvent("generation_completed", {
+            "session_id": session_id,
+            "message_id": mid,
+            "status": "completed",
+        }))
+        return AgentResult(run_id=run_id, answer=full_answer)
+
+    # Streaming con LangGraph astream()
+    try:
+        async for chunk in support_agent_graph.astream(
+            {"run_id": run_id, "question": question, "documents": documents},
+            _config(run_id),
+            stream_mode="values",
+        ):
+            # Verificar cancelación
+            if cancel_event.is_set():
+                tracing.finish_run(run_id, status="interrupted", answer=" ".join(answer_parts))
+                await pubsub.publish(session_id, ChatEvent("generation_interrupted", {
+                    "session_id": session_id,
+                    "message_id": mid,
+                    "status": "interrupted",
+                }))
+                return AgentResult(run_id=run_id, answer=" ".join(answer_parts), error="Interrumpido por el usuario")
+
+            if "answer" in chunk:
+                new_answer = chunk["answer"]
+                if not answer_parts:
+                    # Primer chunk con answer completo — diffeamos token por token
+                    # Si el generate_node devuelve la respuesta completa, partimos por palabras
+                    # para simular streaming real (el LLM subyacente podría no soportar token streaming)
+                    words = new_answer.split()
+                    for word in words:
+                        if cancel_event.is_set():
+                            break
+                        answer_parts.append(word)
+                        await pubsub.publish(session_id, ChatEvent("token_chunk", {
+                            "session_id": session_id,
+                            "token": word + " ",
+                            "sequence": sequence,
+                            "message_id": mid,
+                        }))
+                        sequence += 1
+                        await asyncio.sleep(0)
+                    # Si el bucle de palabras se interrumpió, salir
+                    if cancel_event.is_set():
+                        continue
+                answer_parts = new_answer.split() if isinstance(new_answer, str) else answer_parts
+
+            await asyncio.sleep(0)
+
+    except asyncio.CancelledError:
+        tracing.finish_run(run_id, status="interrupted", answer=" ".join(answer_parts))
+        await pubsub.publish(session_id, ChatEvent("generation_interrupted", {
+            "session_id": session_id,
+            "message_id": mid,
+            "status": "interrupted",
+        }))
+        return AgentResult(run_id=run_id, answer=" ".join(answer_parts), error="Interrumpido por cancelación")
+    except Exception as exc:
+        tracing.finish_run(run_id, status="error", error=f"{type(exc).__name__}: {exc}")
+        await pubsub.publish(session_id, ChatEvent("generation_completed", {
+            "session_id": session_id,
+            "message_id": mid,
+            "status": "error",
+        }))
+        return AgentResult(run_id=run_id, answer=" ".join(answer_parts), error=f"{type(exc).__name__}: {exc}")
+
+    # Finalización normal
+    full_answer = " ".join(answer_parts) if answer_parts else ""
+    tracing.finish_run(run_id, status="completed", answer=full_answer)
+    await pubsub.publish(session_id, ChatEvent("generation_completed", {
+        "session_id": session_id,
+        "message_id": mid,
+        "status": "completed",
+    }))
+    return AgentResult(run_id=run_id, answer=full_answer)

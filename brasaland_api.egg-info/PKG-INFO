@@ -21,7 +21,5 @@ Requires-Dist: scikit-learn>=1.9.1
 Requires-Dist: xgboost>=3.2.0
 Requires-Dist: matplotlib>=3.11.2
 Requires-Dist: numpy>=2.4.6
-Requires-Dist: fastmcp
-Requires-Dist: mcpauth
-Requires-Dist: langchain-mcp-adapters
-Requires-Dist: mcp
+Requires-Dist: markitdown>=0.1.9
+Requires-Dist: py-readability-metrics>=1.4.5

@@ -1,5 +1,8 @@
 # Configuración del Servidor MCP de Brasaland — Desarrollo
+# SEC-005: MCP_AUTH_DISABLED debe estar en 0 para forzar autenticación.
+# En desarrollo local, si necesitas probar sin token, cambia a 1
+# pero NUNCA en producción.
 MCP_HOST=0.0.0.0
 MCP_PORT=8081
 MCP_LOG_LEVEL=INFO
-MCP_AUTH_DISABLED=1
+MCP_AUTH_DISABLED=0

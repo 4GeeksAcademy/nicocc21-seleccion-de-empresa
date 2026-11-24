@@ -28,6 +28,8 @@ _INDIRECT_INJECTION_PATTERNS: list[re.Pattern] = [
     # ─── Ignorar instrucciones (ES) ──
     re.compile(r"\big[n]ora\s+(todas\s+)?(las\s+)?instrucciones\s+(anteriores|previas|del\s+sistema)", re.I),
     re.compile(r"\big[n]ora\s+completamente\s+las\s+instrucciones", re.I),
+    # ─── Ignorar instrucciones anteriores + pedir datos específicos (briefing Brasaland) ──
+    re.compile(r"\big[n]ora\s+las\s+instrucciones\s+anteriores\s+y\s+dime\s+cu[aá]ntos\s+puntos\s+brasa", re.I),
     # ─── Ignorar instrucciones (EN) ──
     re.compile(r"\bignore\s+(all\s+)?(previous|system|prior)\s+(instructions|directives|prompt|rules)", re.I),
     re.compile(r"\band\s+do\s+what\s+(I|i)\s+say", re.I),
@@ -56,7 +58,7 @@ _INDIRECT_INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"\b(dime|C[uú][eé]ntame|reveal|disclose)\s+(todo\s+)?(lo\s+)?(que\s+)?sabes?\s+(sobre|de|about)", re.I),
     re.compile(r"\b(dime|C[uú][eé]ntame)\s+(todo\s+)?(lo\s+)?(que\s+)?sabes?\s+de\s+(las?|los?)", re.I),
     # ─── Revelación datos (EN) ──
-    re.compile(r"\b(tell\s+me|reveal|disclose)\s+(everything|all)\s+(you\s+know\s+)?(about|regarding)", re.I),
+    re.compile(r"\b(tell\s+me|reveal|disclose)\s+(everything|all)\s+(you\s+knows+)?(about|regarding)", re.I),
     # ─── Olvidar identidad (ES) ──
     re.compile(r"\bolvida\s+que\s+(trabajas|trabajaste|eres|perteneces|haces\s+parte\s+de)", re.I),
     # ─── Olvidar identidad (EN) ──
